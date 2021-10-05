@@ -1,43 +1,64 @@
 # This class provides a simple interface to work with the rules of m,n,k-games.
 # Future games should share a similar interface to make conversion of the AI
 # to play different games as seamless as possible.
+import numpy as np
+
 class Board:
     def __init__(self, m, n, k):
         self.m = m
         self.n = n
         self.k = k
-        self.board = [['_']*n for _ in range(m)]
-        self.player = 'X'
-        self.opponent = 'O'
+        self.board = np.zeros((m, n), dtype=int)
+        self.empty = 0
+        self.player = 1
+        self.opponent = -1
+
+    # converting numbers to their respective game values
+    @staticmethod
+    def print_cast(move):
+        return 'O_X'[move + 1]
+
     # allows for printing of the current board state
     def __str__(self):
         string = ''
-        for row in reversed(list(zip(*self.board))):
+        for i, row in enumerate(reversed(list(zip(*self.board)))):
             for x, cell in enumerate(row):
-                string += cell
+                # avoids printing '_' on bottom edge of grid
+                if i == self.n - 1 and cell == self.empty:
+                    string += ' '
+                else:
+                    string += self.print_cast(cell)
+
                 if x != self.m - 1:
                     string += '|'
                 else:
                     string += '\n'
         return string
+
     def flip_players(self):
         self.player, self.opponent = self.opponent, self.player
+
     # does a move by changing the board and current player
     def move(self, x, y):
+        assert 0 <= x < self.m and 0 <= y < self.n, "Illegal move - Out of bounds"
+        assert self.board[x][y] == self.empty, "Illegal move - Spot already taken"
         self.board[x][y] = self.player
         self.flip_players()
+
     # undoes everything done in the move method
     def undo_move(self, x, y):
-        self.board[x][y] = '_'
+        self.board[x][y] = self.empty
         self.flip_players()
+
     # generates and returns a list of all legal moves
     def legal_moves(self):
         moves = []
         for x, column in enumerate(self.board):
             for y, cell in enumerate(column):
-                if cell == '_':
+                if cell == self.empty:
                     moves.append((x, y))
         return moves
+
     # returns True if the player whose turn it is has lost, False otherwise
     def player_has_lost(self):
         # check vertical line |

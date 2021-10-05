@@ -5,7 +5,7 @@ class TestMnk(unittest.TestCase):
     def setUp(self):
         self.board = mnk.Board(3, 3, 2)
     def test_str(self):
-        self.assertEqual(str(self.board), '_|_|_\n'*3)
+        self.assertEqual(str(self.board), '_|_|_\n'*2 + ' | | \n')
     def test_move(self):
         self.board.move(0, 0)
         self.board.move(1, 2)
@@ -13,11 +13,11 @@ class TestMnk(unittest.TestCase):
         self.assertEqual(str(self.board),
             '_|O|_\n'
             '_|_|X\n'
-            'X|_|_\n')
+            'X| | \n')
     def test_undo_move(self):
         self.board.move(0, 0)
         self.board.undo_move(0, 0)
-        self.assertEqual(str(self.board), '_|_|_\n'*3)
+        self.assertEqual(str(self.board), '_|_|_\n'*2 + ' | | \n')
     def test_legal_moves(self):
         self.assertEqual(len(self.board.legal_moves()), 9)
         self.board.move(0, 0)
