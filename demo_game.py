@@ -1,23 +1,9 @@
 import mnk
 
-board = mnk.Board(5, 8, 3)
+board = mnk.Board(3, 3, 2)
 
 print(board)
 
-board.move(0, 0)
-
-print(board)
-
-board.move(1, 1)
-
-print(board)
-
-board.move(2, 6)
-
-print(board)
-
-print(str(board.legal_moves()) + '\n')
-
-print(board.board)
-
-print(board.board.flatten())
+for i in range(9):
+    board.play_ai_move()
+    print(board)

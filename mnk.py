@@ -2,6 +2,7 @@
 # Future games should share a similar interface to make conversion of the AI
 # to play different games as seamless as possible.
 import numpy as np
+from model import model
 
 class Board:
     def __init__(self, m, n, k):
@@ -58,6 +59,31 @@ class Board:
                 if cell == self.empty:
                     moves.append((x, y))
         return moves
+
+    # reshapes board into 1-dimensional array for feeding as input to model
+    def flatten(self):
+        return self.board.reshape(1, self.m * self.n)
+
+    # prediction of how good a given board state is for the player
+    def evaluate(self):
+        return model.predict(self.flatten())
+
+    # plays best ai predicted move
+    def play_ai_move(self):
+        legal_moves = self.legal_moves()
+        assert len(legal_moves) > 0, "No legal moves can be played." 
+        best_move = legal_moves[0]
+        max_evaluation = 0
+
+        for move in legal_moves:
+            self.move(*move)
+            evaluation = self.evaluate()[0][0]
+            if evaluation > max_evaluation:
+                best_move = move
+                max_evaluation = evaluation
+            self.undo_move(*move)
+
+        self.move(*best_move)
 
     # returns True if the player whose turn it is has lost, False otherwise
     def player_has_lost(self):

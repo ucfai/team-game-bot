@@ -1,3 +1,4 @@
+import mnk
 import pandas as pd
 from keras.models import Sequential
 from keras.layers import Dense
@@ -12,4 +13,3 @@ model.add(Dense(1, kernel_initializer='normal', activation='sigmoid'))
 
 #sgd = SGD(lr=learning_rate, momentum=momentum, nesterov=False)
 model.compile(loss='mean_squared_error')
-model.summary()
