@@ -27,7 +27,7 @@ class Board:
         elif len(self.legal_moves()) != 0:
             return "Ongoing Game"
         else:
-            return "Tie"
+            return 0
 
     # does a move by changing the board and current player
     def move(self, x, y):

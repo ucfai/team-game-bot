@@ -36,10 +36,10 @@ for game in range(games):
         verbose = 0
 
     predicted_next = [modelXO(board_states[i+1]) for i in range(len(board_states)-1)]
-    predicted_next.append(np.array([[board.who_won()]]))
+    predicted_next.append(np.array([[board.who_won()]]).astype('float32'))
     predicted_next = np.array(predicted_next)
 
     modelXO.fit(board_states, predicted_next, epochs=numEpochs, batch_size=batchSize, verbose=verbose)
-    print("Game " + str(game) + ": X win")
+    print("Game " + str(game) + " goes to " + ['Tie','X','O'][board.who_won()])
 
 modelXO.save('models/modelXO')
