@@ -8,16 +8,9 @@ learning_rate = 0.005
 momentum = 0.8
 sgd = SGD(lr=learning_rate, momentum=momentum, nesterov=False)
 
-modelX = Sequential()
-modelX.add(Dense(3, input_dim=9, kernel_initializer='normal', activation='sigmoid'))
-modelX.add(Dense(1, kernel_initializer='normal', activation='sigmoid'))
+modelXO = Sequential()
+modelXO.add(Dense(3, input_dim=9, kernel_initializer='normal', activation='tanh'))
+modelXO.add(Dense(1, kernel_initializer='normal', activation='tanh'))
 
-modelX.compile(loss='mean_squared_error', optimizer = sgd)
+modelXO.compile(loss='mean_squared_error', optimizer = sgd)
 
-######################################################################
-
-modelO = Sequential()
-modelO.add(Dense(3, input_dim=9, kernel_initializer='normal', activation='sigmoid'))
-modelO.add(Dense(1, kernel_initializer='normal', activation='sigmoid'))
-
-modelO.compile(loss='mean_squared_error', optimizer = sgd)

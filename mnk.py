@@ -3,8 +3,6 @@
 # to play different games as seamless as possible.
 import numpy as np
 import random
-from model import modelX, modelO
-from tensorflow import keras
 
 class Board:
     def __init__(self, m, n, k):
@@ -16,48 +14,6 @@ class Board:
         self.player = 1
         self.opponent = -1
         self.board_history = []
-        self.modelX = keras.models.load_model('models/modelX')
-        self.modelO = keras.models.load_model('models/modelO')
-        self.use_saved_models = 1
-
-    # plays best ai predicted move
-    def play_ai_move(self, epsilon=0.001):
-        legal_moves = self.legal_moves()
-        assert len(legal_moves) > 0, "No legal moves can be played."
-
-        # Exploration
-        if (random.random() < epsilon):
-            print("0.1% probability exploration move was made!")
-            self.move(*legal_moves[random.randint(0, len(legal_moves) - 1)])
-            # currently just plays a random legal move
-            # ideally have it use monte carlo tree search instead
-            return
-
-        best_move = legal_moves[0]
-        max_evaluation = 0
-
-        for move in legal_moves:
-            self.move(*move)
-            evaluation = self.evaluate()
-            if evaluation > max_evaluation:
-                best_move = move
-                max_evaluation = evaluation
-            self.undo_move(*move)
-
-        self.move(*best_move)
-
-    # prediction of how good a given board state is for the player
-    def evaluate(self):
-        if self.player == -1:
-            if self.use_saved_models:
-                return self.modelX.predict(self.flatten())
-            else:
-                return modelX.predict(self.flatten())
-        else:
-            if self.use_saved_models:
-                return self.modelO.predict(self.flatten())
-            else:
-                return modelO.predict(self.flatten())
 
     def history(self):
         return self.board_history
@@ -67,7 +23,7 @@ class Board:
 
     def who_won(self):
         if self.player_has_lost():
-            return 'X' if self.player == -1 else 'O'
+            return 1 if self.player == -1 else -1
         elif len(self.legal_moves()) != 0:
             return "Ongoing Game"
         else:

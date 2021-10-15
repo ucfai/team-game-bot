@@ -1,11 +1,12 @@
 # TODO: PLOT LOSS CURVES
-
+from tensorflow.keras.utils import to_categorical
 import numpy as np
 import mnk
-from model import modelX, modelO
+from agent import Agent
+from model import modelXO
 
 games = 150
-m, n, k = 3, 3, 2
+m, n, k = 3, 3, 3
 epsilon = 0.001
 numEpochs = 5
 batchSize = 1
@@ -14,37 +15,31 @@ verbose = 0
 for game in range(games):
     board = mnk.Board(m, n, k)
 
+    agentX = Agent(board, modelXO, 1)
+    agentO = Agent(board, modelXO, -1)
+
     while not board.player_has_lost() and len(board.legal_moves()) != 0:
-        board.play_ai_move(epsilon)
+
+        if board.player == 1:
+            agentX.action(epsilon)
+        else:
+            agentO.action(epsilon)
+
         if game % 5 == 0:
             print(board)
 
-    datasetX = np.array(board.history()[::2])
-    datasetO = np.array(board.history()[1::2])
+    board_states = np.array(board.history()[:-1])
 
     if game % 13 == 0:
         verbose = 1
     else:
         verbose = 0
 
-    if board.who_won() == 'X':
-        win = np.ones(len(datasetX))
-        loss = np.zeros(len(datasetO))
-        modelX.fit(datasetX, win, epochs=numEpochs, batch_size=batchSize, verbose=verbose)
-        modelO.fit(datasetO, loss, epochs=numEpochs, batch_size=batchSize, verbose=verbose)
-        print("Game " + str(game) + ": X win")
-    elif board.who_won() == 'O':
-        win = np.ones(len(datasetO))
-        loss = np.zeros(len(datasetX))
-        modelX.fit(datasetX, loss, epochs=numEpochs, batch_size=batchSize, verbose=verbose)
-        modelO.fit(datasetO, win, epochs=numEpochs, batch_size=batchSize, verbose=verbose)
-        print("Game " + str(game) + ": O win")
-    else:
-        tieX = np.zeros(len(datasetX))
-        tieO = np.zeros(len(datasetO))
-        modelX.fit(datasetX, tieX, epochs=numEpochs, batch_size=batchSize, verbose=verbose)
-        modelO.fit(datasetO, tieO, epochs=numEpochs, batch_size=batchSize, verbose=verbose)
-        print("Game " + str(game) + ": Tie")
+    predicted_next = [modelXO(board_states[i+1]) for i in range(len(board_states)-1)]
+    predicted_next.append(np.array([[board.who_won()]]))
+    predicted_next = np.array(predicted_next)
 
-modelX.save('models/modelX')
-modelO.save('models/modelO')
+    modelXO.fit(board_states, predicted_next, epochs=numEpochs, batch_size=batchSize, verbose=verbose)
+    print("Game " + str(game) + ": X win")
+
+modelXO.save('models/modelXO')
