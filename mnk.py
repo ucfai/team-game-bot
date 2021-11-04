@@ -5,18 +5,40 @@ import numpy as np
 import random
 
 class Board:
-    def __init__(self, m, n, k):
+    def __init__(self, m, n, k, flatten = True, hist_length = -1):
         self.m = m
         self.n = n
         self.k = k
+        self.flatten = flatten
+        self.hist_length = hist_length
         self.board = np.zeros((m, n), dtype=int)
         self.empty = 0
         self.player = 1
         self.opponent = -1
         self.board_history = []
+        self.undo_buffer = np.zeros((m, n), dtype=int)
 
     def history(self):
         return self.board_history
+
+    def add_history(self):
+        if self.hist_length == -1 or len(self.board_history) < self.hist_length:
+            self.board_history.append(self.get_board())
+        else:
+            self.undo_buffer = self.board_history[0]
+            for i in range(len(self.board_history)-1):
+                self.board_history[i] = board_history[i+1]
+            self.board_history[-1] = self.get_board()
+
+    def del_history(self):
+        if self.hist_length == -1 or len(self.board_history) < self.hist_length:
+            self.board_history.pop()
+        else:
+            for i in range(0,len(self.board_history)-1,-1):
+                self.board_history[i+1] = self.board_history[i]
+            self.board_history[0] = self.undo_buffer
+            self.undo_buffer = np.zeros((m, n), dtype=int)
+
 
     def flip_players(self):
         self.player, self.opponent = self.opponent, self.player
@@ -34,13 +56,13 @@ class Board:
         assert 0 <= x < self.m and 0 <= y < self.n, "Illegal move - Out of bounds"
         assert self.board[x][y] == self.empty, "Illegal move - Spot already taken"
         self.board[x][y] = self.player
-        self.board_history.append(self.flatten())
+        self.add_history()
         self.flip_players()
 
     # undoes everything done in the move method
     def undo_move(self, x, y):
         self.board[x][y] = self.empty
-        self.board_history.pop()
+        self.del_history()
         self.flip_players()
 
     # generates and returns a list of all legal moves
@@ -52,9 +74,12 @@ class Board:
                     moves.append((x, y))
         return moves
 
-    # reshapes board into 1-dimensional array for feeding as input to model
-    def flatten(self):
-        return self.board.reshape(1, self.m * self.n)
+    # reshapes board into 1-dimensional array for feeding as input to model if flatten is True
+    def get_board(self):
+        if self.flatten:
+            return self.board.reshape(1, self.m * self.n)
+        else:
+            return self.board
 
     # converting numbers to their respective game values
     @staticmethod

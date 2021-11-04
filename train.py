@@ -21,9 +21,9 @@ for game in range(games):
     while not board.player_has_lost() and len(board.legal_moves()) != 0:
 
         if board.player == 1:
-            agentX.action(epsilon)
+            agentX.action()
         else:
-            agentO.action(epsilon)
+            agentO.action()
 
         if game % 5 == 0:
             print(board)

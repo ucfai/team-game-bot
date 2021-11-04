@@ -24,7 +24,7 @@ class Agent():
 
         for move in legal_moves:
             self.board.move(*move)
-            evaluation = self.player * self.model(self.board.flatten())
+            evaluation = self.player * self.model(self.board.get_board())
             if evaluation > max_evaluation:
                 best_move = move
                 max_evaluation = evaluation
