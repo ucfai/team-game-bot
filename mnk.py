@@ -47,8 +47,10 @@ class Board:
         if self.player_has_lost():
             return 1 if self.player == -1 else -1
         elif len(self.legal_moves()) != 0:
-            return "Ongoing Game"
+            # ongoing
+            return 2
         else:
+            # draw
             return 0
 
     # does a move by changing the board and current player

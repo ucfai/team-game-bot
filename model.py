@@ -9,7 +9,8 @@ momentum = 0.8
 sgd = SGD(lr=learning_rate, momentum=momentum, nesterov=False)
 
 modelXO = Sequential()
-modelXO.add(Dense(3, input_dim=9, kernel_initializer='normal', activation='tanh'))
+modelXO.add(Dense(6, input_dim=9, kernel_initializer='normal', activation='relu'))
+modelXO.add(Dense(6, input_dim=9, kernel_initializer='normal', activation='relu'))
 modelXO.add(Dense(1, kernel_initializer='normal', activation='tanh'))
 
 modelXO.compile(loss='mean_squared_error', optimizer = sgd)

@@ -6,9 +6,9 @@ import mnk
 from agent import Agent
 from model import modelXO
 
-games = 500
+games = 1010
 m, n, k = 3, 3, 3
-epsilon = 0.1
+epsilon = 1
 numEpochs = 1
 batchSize = 1
 verbose = 0
@@ -38,8 +38,8 @@ for game in range(games):
     modelXO.fit(board.history()[-2], terminal_eval, epochs=numEpochs, batch_size=batchSize, verbose=0)
     modelXO.fit(board.history()[-1], terminal_eval, epochs=numEpochs, batch_size=batchSize, verbose=0)
 
-    if game % 50 == 0:
-        epsilon /= 1.5
+    if game % 300 == 0:
+        epsilon /= 10
 
     if game % 10 == 0:
         print("Game " + str(game) + " goes to " + ['Tie', 'X', 'O'][board.who_won()])
