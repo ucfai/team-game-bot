@@ -9,13 +9,13 @@ class Agent():
         self.model = model;
         self.player = player;
 
-    def action(self, epsilon=0.1):
+    def action(self, epsilon=0.01):
         legal_moves = self.board.legal_moves()
         assert len(legal_moves) > 0, "No legal moves can be played."
 
         # Exploration
         if (random.random() < epsilon):
-            print("0.1% probability exploration move was made!")
+            print("Played epsilon move ({:.5f})".format(epsilon))
             self.board.move(*legal_moves[random.randint(0, len(legal_moves) - 1)])
             return
 

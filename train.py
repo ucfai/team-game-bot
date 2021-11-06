@@ -1,45 +1,47 @@
 # TODO: PLOT LOSS CURVES
 from tensorflow.keras.utils import to_categorical
+import tensorflow as tf
 import numpy as np
 import mnk
 from agent import Agent
 from model import modelXO
 
-games = 150
+games = 500
 m, n, k = 3, 3, 3
-epsilon = 0.001
-numEpochs = 5
+epsilon = 0.1
+numEpochs = 1
 batchSize = 1
 verbose = 0
 
 for game in range(games):
-    board = mnk.Board(m, n, k)
+    board = mnk.Board(m, n, k, hist_length=2)
 
     agentX = Agent(board, modelXO, 1)
     agentO = Agent(board, modelXO, -1)
 
+    move = 1
     while not board.player_has_lost() and len(board.legal_moves()) != 0:
+        if move > 2:
+            evaluation = modelXO(board.get_board())
+            modelXO.fit(board.history()[-2], evaluation, epochs=numEpochs, batch_size=batchSize, verbose=0)
 
         if board.player == 1:
-            agentX.action()
+            agentX.action(epsilon)
         else:
-            agentO.action()
+            agentO.action(epsilon)
 
-        if game % 5 == 0:
+        if game % 50 == 0:
             print(board)
+        move += 1
 
-    board_states = np.array(board.history()[:-1])
+    terminal_eval = tf.constant(board.who_won(), dtype="float32", shape=(1, 1))
+    modelXO.fit(board.history()[-2], terminal_eval, epochs=numEpochs, batch_size=batchSize, verbose=0)
+    modelXO.fit(board.history()[-1], terminal_eval, epochs=numEpochs, batch_size=batchSize, verbose=0)
 
-    if game % 13 == 0:
-        verbose = 1
-    else:
-        verbose = 0
+    if game % 50 == 0:
+        epsilon /= 1.5
 
-    predicted_next = [modelXO(board_states[i+1]) for i in range(len(board_states)-1)]
-    predicted_next.append(np.array([[board.who_won()]]).astype('float32'))
-    predicted_next = np.array(predicted_next)
-
-    modelXO.fit(board_states, predicted_next, epochs=numEpochs, batch_size=batchSize, verbose=verbose)
-    print("Game " + str(game) + " goes to " + ['Tie','X','O'][board.who_won()])
+    if game % 10 == 0:
+        print("Game " + str(game) + " goes to " + ['Tie', 'X', 'O'][board.who_won()])
 
 modelXO.save('models/modelXO')

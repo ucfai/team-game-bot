@@ -5,7 +5,7 @@ import numpy as np
 import random
 
 class Board:
-    def __init__(self, m, n, k, flatten = True, hist_length = -1):
+    def __init__(self, m, n, k, flatten=True, hist_length=-1):
         self.m = m
         self.n = n
         self.k = k
@@ -27,7 +27,7 @@ class Board:
         else:
             self.undo_buffer = self.board_history[0]
             for i in range(len(self.board_history)-1):
-                self.board_history[i] = board_history[i+1]
+                self.board_history[i] = self.board_history[i+1]
             self.board_history[-1] = self.get_board()
 
     def del_history(self):
@@ -37,7 +37,7 @@ class Board:
             for i in range(0,len(self.board_history)-1,-1):
                 self.board_history[i+1] = self.board_history[i]
             self.board_history[0] = self.undo_buffer
-            self.undo_buffer = np.zeros((m, n), dtype=int)
+            self.undo_buffer = np.zeros((self.m, self.n), dtype=int)
 
 
     def flip_players(self):
