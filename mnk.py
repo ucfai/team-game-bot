@@ -2,89 +2,69 @@
 # Future games should share a similar interface to make conversion of the AI
 # to play different games as seamless as possible.
 import numpy as np
-import random
-from model import modelX, modelO
-from tensorflow import keras
+
 
 class Board:
-    def __init__(self, m, n, k):
+    def __init__(self, m, n, k, flatten=True, hist_length=-1):
         self.m = m
         self.n = n
         self.k = k
+        self.flatten = flatten
+        self.hist_length = hist_length
         self.board = np.zeros((m, n), dtype=int)
         self.empty = 0
         self.player = 1
         self.opponent = -1
         self.board_history = []
-        self.modelX = keras.models.load_model('models/modelX')
-        self.modelO = keras.models.load_model('models/modelO')
-        self.use_saved_models = 1
-
-    # plays best ai predicted move
-    def play_ai_move(self, epsilon=0.001):
-        legal_moves = self.legal_moves()
-        assert len(legal_moves) > 0, "No legal moves can be played."
-
-        # Exploration
-        if (random.random() < epsilon):
-            print("0.1% probability exploration move was made!")
-            self.move(*legal_moves[random.randint(0, len(legal_moves) - 1)])
-            # currently just plays a random legal move
-            # ideally have it use monte carlo tree search instead
-            return
-
-        best_move = legal_moves[0]
-        max_evaluation = 0
-
-        for move in legal_moves:
-            self.move(*move)
-            evaluation = self.evaluate()
-            if evaluation > max_evaluation:
-                best_move = move
-                max_evaluation = evaluation
-            self.undo_move(*move)
-
-        self.move(*best_move)
-
-    # prediction of how good a given board state is for the player
-    def evaluate(self):
-        if self.player == -1:
-            if self.use_saved_models:
-                return self.modelX.predict(self.flatten())
-            else:
-                return modelX.predict(self.flatten())
-        else:
-            if self.use_saved_models:
-                return self.modelO.predict(self.flatten())
-            else:
-                return modelO.predict(self.flatten())
+        self.undo_buffer = np.zeros((m, n), dtype=int)
 
     def history(self):
         return self.board_history
+
+    def add_history(self):
+        if self.hist_length == -1 or len(self.board_history) < self.hist_length:
+            self.board_history.append(self.get_board())
+        else:
+            self.undo_buffer = self.board_history[0]
+            for i in range(len(self.board_history)-1):
+                self.board_history[i] = self.board_history[i+1]
+            self.board_history[-1] = self.get_board()
+
+    def del_history(self):
+        if self.hist_length == -1 or len(self.board_history) < self.hist_length:
+            self.board_history.pop()
+        else:
+            for i in range(0,len(self.board_history)-1, -1):
+                self.board_history[i+1] = self.board_history[i]
+            self.board_history[0] = self.undo_buffer
+            self.undo_buffer = np.zeros((self.m, self.n), dtype=int)
+
 
     def flip_players(self):
         self.player, self.opponent = self.opponent, self.player
 
     def who_won(self):
         if self.player_has_lost():
-            return 'X' if self.player == -1 else 'O'
+            return 1 if self.player == -1 else -1
         elif len(self.legal_moves()) != 0:
-            return "Ongoing Game"
+            # ongoing
+            return 2
         else:
-            return "Tie"
+            # draw
+            return 0
 
     # does a move by changing the board and current player
     def move(self, x, y):
         assert 0 <= x < self.m and 0 <= y < self.n, "Illegal move - Out of bounds"
         assert self.board[x][y] == self.empty, "Illegal move - Spot already taken"
         self.board[x][y] = self.player
-        self.board_history.append(self.flatten())
+        self.add_history()
         self.flip_players()
 
     # undoes everything done in the move method
     def undo_move(self, x, y):
         self.board[x][y] = self.empty
-        self.board_history.pop()
+        self.del_history()
         self.flip_players()
 
     # generates and returns a list of all legal moves
@@ -96,9 +76,12 @@ class Board:
                     moves.append((x, y))
         return moves
 
-    # reshapes board into 1-dimensional array for feeding as input to model
-    def flatten(self):
-        return self.board.reshape(1, self.m * self.n)
+    # reshapes board into 1-dimensional array for feeding as input to model if flatten is True
+    def get_board(self):
+        if self.flatten:
+            return np.copy(self.board.reshape(1, self.m * self.n))
+        else:
+            return np.copy(self.board.reshape(1, 3, 3, 1))
 
     # converting numbers to their respective game values
     @staticmethod
