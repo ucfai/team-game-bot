@@ -2,7 +2,7 @@
 # Future games should share a similar interface to make conversion of the AI
 # to play different games as seamless as possible.
 import numpy as np
-import random
+
 
 class Board:
     def __init__(self, m, n, k, flatten=True, hist_length=-1):
@@ -34,7 +34,7 @@ class Board:
         if self.hist_length == -1 or len(self.board_history) < self.hist_length:
             self.board_history.pop()
         else:
-            for i in range(0,len(self.board_history)-1,-1):
+            for i in range(0,len(self.board_history)-1, -1):
                 self.board_history[i+1] = self.board_history[i]
             self.board_history[0] = self.undo_buffer
             self.undo_buffer = np.zeros((self.m, self.n), dtype=int)
@@ -79,9 +79,9 @@ class Board:
     # reshapes board into 1-dimensional array for feeding as input to model if flatten is True
     def get_board(self):
         if self.flatten:
-            return self.board.reshape(1, self.m * self.n)
+            return np.copy(self.board.reshape(1, self.m * self.n))
         else:
-            return self.board
+            return np.copy(self.board.reshape(1, 3, 3, 1))
 
     # converting numbers to their respective game values
     @staticmethod

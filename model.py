@@ -1,17 +1,22 @@
 import mnk
 import pandas as pd
 from keras.models import Sequential
-from keras.layers import Dense
-from tensorflow.keras.optimizers import SGD
+from keras.layers import Dense, Conv2D, Flatten, Dropout
+from tensorflow.keras.optimizers import Adadelta
 
-learning_rate = 0.005
-momentum = 0.8
-sgd = SGD(lr=learning_rate, momentum=momentum, nesterov=False)
+learning_rate = 1.0
+rho = 0.995
+epsilon = 1e-07
+sgd = Adadelta(lr=learning_rate, rho=rho, epsilon=epsilon)
 
 modelXO = Sequential()
-modelXO.add(Dense(6, input_dim=9, kernel_initializer='normal', activation='relu'))
-modelXO.add(Dense(6, input_dim=9, kernel_initializer='normal', activation='relu'))
+modelXO.add(Conv2D(12, 3, padding="same", input_shape=(3, 3, 1), activation='tanh', kernel_initializer="he_normal"))
+modelXO.add(Dropout(0.1))
+modelXO.add(Conv2D(9, 2, padding="valid", input_shape=(3, 3, 1), activation='tanh', kernel_initializer="he_normal"))
+modelXO.add(Dropout(0.1))
+modelXO.add(Flatten())
+modelXO.add(Dense(18, kernel_initializer='normal', activation='tanh'))
 modelXO.add(Dense(1, kernel_initializer='normal', activation='tanh'))
 
-modelXO.compile(loss='mean_squared_error', optimizer = sgd)
+modelXO.compile(loss='mean_squared_error', optimizer=sgd)
 
