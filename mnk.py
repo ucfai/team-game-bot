@@ -5,11 +5,11 @@ import numpy as np
 
 
 class Board:
-    def __init__(self, m, n, k, flatten=True, hist_length=-1):
+    def __init__(self, m, n, k, form="flatten", hist_length=-1):
         self.m = m
         self.n = n
         self.k = k
-        self.flatten = flatten
+        self.form = form
         self.hist_length = hist_length
         self.board = np.zeros((m, n), dtype=int)
         self.empty = 0
@@ -38,7 +38,6 @@ class Board:
                 self.board_history[i+1] = self.board_history[i]
             self.board_history[0] = self.undo_buffer
             self.undo_buffer = np.zeros((self.m, self.n), dtype=int)
-
 
     def flip_players(self):
         self.player, self.opponent = self.opponent, self.player
@@ -78,10 +77,19 @@ class Board:
 
     # reshapes board into 1-dimensional array for feeding as input to model if flatten is True
     def get_board(self):
-        if self.flatten:
-            return np.copy(self.board.reshape(1, self.m * self.n))
-        else:
+        if self.form == "flatten":
+            return np.copy(self.board.reshape(1, 1, self.m * self.n))
+        elif self.form == "planar":
             return np.copy(self.board.reshape(1, 3, 3, 1))
+        elif self.form == "multiplanar":
+            board_planes = np.zeros((self.m, self.n, 2), dtype=int)
+            for i in range(self.m):
+                for j in range(self.n):
+                    if self.board[i][j] == 1:
+                        board_planes[i][j][0] = 1
+                    elif self.board[i][j] == -1:
+                        board_planes[i][j][1] = 1
+            return np.copy(board_planes.reshape(1, 3, 3, 2))
 
     # converting numbers to their respective game values
     @staticmethod

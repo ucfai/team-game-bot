@@ -25,4 +25,5 @@ def plot_wins(win_states, num, labels=['X', 'O']):
     pyplot.plot(game, ties, label="Ties")
     pyplot.legend()
     pyplot.title("Number of Each End State for Previous {} Games".format(num))
-    pyplot.show()
+
+
