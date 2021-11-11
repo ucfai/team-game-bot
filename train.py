@@ -1,6 +1,4 @@
 # TODO: PLOT LOSS CURVES
-import tensorflow as tf
-import numpy as np
 from mnk import Board
 import random
 from matplotlib import pyplot
@@ -9,54 +7,64 @@ from model import modelXO
 from plot import plot_wins
 from hof import HOF
 
+mnk = (3, 3, 3)
 
-def train(mnk, hof, hof_params, games, diagnostic_freq, epsilon):
-    hof.store(modelXO, "init")
-    hof_freq, hof_duration = hof_params
+
+def run_game(agent_train, agent_verse, epsilon, training):
+    board = Board(*mnk, form="flatten", hist_length=-1)
+
+    while board.who_won() == 2:
+        if board.player == agent_verse.player:
+            agent_verse.action(board, False, 0)
+        else:
+            agent_train.action(board, training, epsilon)
+
+    winner = board.who_won()
+
+    if winner != agent_train.player and training:
+        agent_train.update_model(board)
+
+    return winner
+
+
+def train(hof, loops, loop_length, epsilon):
     end_states = []
     victories = []
 
-    for game in range(games):
-        print(game)
-        diagnostic = game % diagnostic_freq == 0
+    # initialize values
+    hof.store(modelXO, "init")
+    model_hof = hof.sample_hof()
+    side_best = [-1, 1][random.random() > 0.5]
+    side_hof = side_best * -1
 
-        board = Board(*mnk, form="flatten", hist_length=-1)
+    for loop in range(loops):
+        print(loop)
 
         # initialize the agents
-        if game % hof_duration == 0:
-            modelHOF = hof.sample_hof("limit-uniform")
-        sideT = [-1, 1][game % 2]
-        sideHOF = [None, -1, 1][sideT]
-        agentT = Agent(board, modelXO, sideT, training=not diagnostic)
-        agentHOF = Agent(board, modelHOF, sideHOF, training=False)
+        agent_best = Agent(modelXO, side_best)
+        agent_hof = Agent(model_hof, side_hof)
 
-        while board.who_won() == 2:
-            if board.player == sideHOF:
-                agentHOF.action()
-            else:
-                agentT.action(epsilon*(not diagnostic))
+        for game in range(loop_length):
+            run_game(agent_best, agent_hof, epsilon, training=True)
 
-        # update value for the last action before the terminal state
-        # (only necessary if agent lost, otherwise .action() handles it)
-        if board.who_won() != sideT:
-            agentT.update_model()
+        diagnostic_winner = run_game(agent_best, agent_hof, 0, training=False)
 
-        # occasionally save new model to hall of fame
-        if game % hof_freq == 0 and game != 0:
-            hof.store(modelXO, game)
+        if diagnostic_winner != side_hof:
+            side_best = [-1, 1][random.random() > 0.5]
+            side_hof = side_best * -1
+            hof.store(modelXO, loop)
+            model_hof = hof.sample_hof()
 
-        if diagnostic:
-            end_states.append(board.who_won())
-            victories.append(board.who_won()*sideT)
+        end_states.append(diagnostic_winner)
+        victories.append(diagnostic_winner)
 
     return modelXO, end_states, victories
 
 
 if __name__ == "__main__":
-    mnk = (3, 3, 3)
     hof = HOF("menagerie")
 
-    model, end_states, victories = train(mnk, hof, (10, 1), 10000, diagnostic_freq=11, epsilon=0.1)
+    model, end_states, victories = train(hof, 1000, 10, epsilon=0.1)
     model.save('models/modelXO')
 
     pyplot.subplot(3, 1, 1)
