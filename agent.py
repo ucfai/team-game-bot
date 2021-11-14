@@ -34,14 +34,17 @@ class Agent:
         return legal_moves[random.randint(0, len(legal_moves) - 1)]
 
     def value(self, board):
-        if board.who_won() == self.player:
-            return tf.constant(1, dtype="float32", shape=(1, 1))
-        elif board.who_won() == -1*self.player:
-            return tf.constant(-1, dtype="float32", shape=(1, 1))
-        elif board.who_won() == 0:
-            return tf.constant(0, dtype="float32", shape=(1, 1))
+        if board.who_won() != 2:
+            return tf.constant(self.player*board.who_won(), dtype="float32", shape=(1, 1))
         else:
             return self.player*self.model(board.get_board())
+
+    def evaluation(self, board):
+        if board.who_won() != 2:
+            return tf.constant(board.who_won(), dtype="float32", shape=(1, 1))
+        else:
+            return self.model(board.get_board())
+
 
     def action(self, board, training, epsilon=0):
         legal_moves = board.legal_moves()
@@ -53,7 +56,6 @@ class Agent:
 
         # Exploration
         if random.random() < epsilon:
-            print("Played epsilon move ({:.5f})".format(epsilon))
             move = self.random_action(board)
         else:
             move = greedy
@@ -63,10 +65,10 @@ class Agent:
     def update_model(self, board, greedy_move=()):
         if greedy_move == ():
             assert board.who_won() != 2 and board.who_won() != self.player
-            self.model.fit(board.history()[-2], self.value(board), batch_size=1, verbose=0)
+            self.model.fit(board.history()[-2], self.evaluation(board), batch_size=1, verbose=0)
         else:
             board.move(*greedy_move)
-            self.model.fit(board.history()[-3], self.value(board), batch_size=1, verbose=0)
+            self.model.fit(board.history()[-3], self.evaluation(board), batch_size=1, verbose=0)
             board.undo_move(*greedy_move)
 
 
