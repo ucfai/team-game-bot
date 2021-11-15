@@ -3,6 +3,7 @@ import tensorflow as tf
 from matplotlib import pyplot
 import os
 from math import floor
+from model import Model
 
 
 class HOF:
@@ -11,18 +12,24 @@ class HOF:
         self.folder = folder
         self.sample_history = []
         self.pop_size = 0
-        self.basel = 0  # used in limit-uniform sampling
+        self.basel = 0  # Used in limit-uniform sampling
         if not os.path.isdir(folder):
             os.makedirs(folder)
 
-    def store(self, model, name):
-        model.save("{}/{}".format(self.folder, name))
-        self.hof.append(name)
+    def store(self, model):
+        model.save_to("{}/{}".format(self.folder, self.pop_size))
+        self.hof.append(self.pop_size)
         self.pop_size += 1
         self.basel += 1/self.pop_size**2
 
-    def sample_hof(self, method='uniform'):
-        if method == 'limit-uniform':
+    # Gating method decides whether to add the model to the hall of fame
+    def gate(self, model):
+        # Simple gating method, stores model after every training episode
+        self.store(model)
+
+    # Samples from the hall of fame with the provided method
+    def sample(self, method='uniform'):
+        if method == 'limit-uniform':  # Performs poorly. Do not use.
             threshold = random.random()*self.basel
 
             cum_prob = 0
@@ -38,9 +45,10 @@ class HOF:
         self.sample_history.append(ind)
 
         name = self.hof[ind]
-        return tf.keras.models.load_model("{}/{}".format(self.folder, name))
+        return Model("{}/{}".format(self.folder, name))
 
-    def sample_hist(self, num=100):
+    # Displays a histogram of the model iterations sampled from the hall of fame
+    def sample_histogram(self, num=100):
         pyplot.hist(self.sample_history, num)
         pyplot.title("Sampling of Model Indices from HOF")
         pyplot.show()
