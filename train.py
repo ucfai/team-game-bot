@@ -17,11 +17,11 @@ modelHOF = hof.sample_hof()
 hof_freq = 10  # how often to save the model to the HOF
 hof_duration = 2  # how long to keep using the same HOF model before loading a new one
 
-num_games = 10000
-epsilon = 0.1  # exploration constant
-decay_freq = 10  # number of games between each epsilon decrement
-decay_factor = 0.00099  # how much to decrease by
-print_freq = 50 # number of games between each print
+num_games = 100000
+epsilon = 0.15  # exploration constant
+decay_freq = 30  # number of games between each epsilon decrement
+decay_factor = 0.0005  # how much to decrease by
+print_freq = 100 # number of games between each print
 
 end_states = []
 victories = []
@@ -85,7 +85,7 @@ for game in range(num_games):
 print("Training complete.")
 print("Saving trained model to models/modelXO and chart to plots folder")
 
-plot_wins(end_states, run_length=50)
-plot_wins(victories, run_length=50, ["Best", "HOF"])
+plot_wins(end_states, run_length=50, labels=['X', 'O'])
+plot_wins(victories, run_length=50, labels=["Best", "HOF"])
 
 modelXO.save('models/modelXO')

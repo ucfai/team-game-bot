@@ -28,4 +28,5 @@ def plot_wins(game_outcomes, run_length, labels=['X', 'O']):
     plt.xlabel("Game number")
     plt.ylabel("Wins out of previous {} games".format(run_length))
     plt.show()
-    plt.savefig("plots/plot{}.png".format(num_games))
+    plt.savefig("plots/plot{}{}.png".format("".join(labels), num_games))
+    plt.clf()
