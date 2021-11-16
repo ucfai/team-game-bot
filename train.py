@@ -1,91 +1,124 @@
 # TODO: PLOT LOSS CURVES
-import tensorflow as tf
-import numpy as np
-import mnk
+from mnk import Board
 import random
+import matplotlib.pyplot as plt
 from agent import Agent
-from model import modelXO
+from model import Model
 from plot import plot_wins
 from hof import HOF
 
+mnk = (3, 3, 3)
 
-m, n, k = 3, 3, 3
-hof = HOF("menagerie")
-hof.store(modelXO, "init")
-modelHOF = hof.sample_hof()
+def main():
 
-hof_freq = 10  # how often to save the model to the HOF
-hof_duration = 2  # how long to keep using the same HOF model before loading a new one
+    # Initialize hall of fame
+    hof = HOF("menagerie")
 
-num_games = 100000
-epsilon = 0.15  # exploration constant
-decay_freq = 30  # number of games between each epsilon decrement
-decay_factor = 0.0005  # how much to decrease by
-print_freq = 100 # number of games between each print
+    # Each loop trains n games and then does one diagnostic game without exploration moves
+    num_loops = 20
+    loop_length = 5 # also doubles as print_frequency
+    epsilon = 0.2  # exploration constant
+    decay_freq = 30  # number of games between each epsilon decrement [Currently not being used]
+    decay_factor = 0.0005  # how much to decrease by [Currently not being used]
+    plot_run_length = num_loops // 10
 
-end_states = []
-victories = []
-stored_games = []
+    # Run training and store final model
+    model, end_states, victories, games = train(hof, num_loops, loop_length, epsilon, Model())
 
-for game in range(num_games):
-    board = mnk.Board(m, n, k, flatten=False, hist_length=-1)
+    print("Training complete.")
+    print("Saving trained model to models/modelXO and charts to plots folder")
 
-    # Decrease exploration over time
-    if game % decay_freq == 0 and game != 0:
-        epsilon -= decay_factor
+    model.save_to('models/modelXO')
 
-    # Choose hall of fame model by sampling
-    if game % hof_duration == 0 and game != 0:
-        modelHOF = hof.sample_hof()
+    # Create data plots
+    plt.subplots(3, 3, constrained_layout=True)
 
-    # Determine who will play as X and 0
-    sideT = [-1, 1][random.random() > 0.5]
-    sideHOF = [None, -1, 1][sideT]
+    plt.subplot(3, 1, 1)
+    plot_wins(end_states, run_length=plot_run_length, labels=['X', 'O'])
 
-    # Initialize agents
-    agentT = Agent(board, modelXO, sideT)
-    agentHOF = Agent(board, modelHOF, sideHOF)
+    plt.subplot(3, 1, 2)
+    plot_wins(victories, run_length=plot_run_length, labels=["Best", "HOF"])
 
-    move = 1
+    plt.subplot(3, 1, 3)
+    hof.sample_histogram(20) # shows how HOF was sampled
 
-    # Gameplay loop
+    plt.show()
+    plt.savefig("plots/plot{}.png".format(num_loops * loop_length))
+
+    ind = 0
+    while ind != -1:
+        ind = int(input("Query a game: "))
+        for move in games[ind]:
+            print(move)
+        pass
+
+# Runs a game from start to end
+def run_game(agent_train, agent_versing, epsilon, training):
+    board = Board(*mnk, form="flatten", hist_length=-1)
+    game = []
+
     while board.game_ongoing():
-
         # Select a move
-        if board.player == sideHOF:
-            agentHOF.action(epsilon)
+        if board.player == agent_versing.player:
+            agent_versing.action(board, False, 0)
         else:
-            agentT.action(epsilon)
+            agent_train.action(board, training, epsilon)
+        
+        # Store game for later analysis
+        game.append(board.__str__())
 
-        # Back up the current board evaluation to the last action chosen by the current agent
-        if move > 2:
-            evaluation = modelXO(board.get_board())
-            modelXO.fit(board.history()[-3], evaluation, batch_size=1, verbose=0)
-
-        move += 1
-
-        if game % print_freq == 0:
+        # diagnostic game with no epsilon moves
+        if not training:
             print(board)
 
-    # Back up the terminal state value to the last actions chosen by either agent
-    terminal_eval = tf.constant(board.who_won(), dtype="float32", shape=(1, 1))
-    modelXO.fit(board.history()[-3], terminal_eval, batch_size=1, verbose=0)
-    modelXO.fit(board.history()[-2], terminal_eval, batch_size=1, verbose=0)
+    winner = board.who_won()
 
-    # Occasionally save new model to hall of fame
-    if game % hof_freq == 0 and game != 0:
-        hof.store(modelXO, game)
+    # Back up the terminal state value to the last action chosen by training agent
+    if winner != agent_train.player and training:
+        agent_train.model.td_update(board, terminal=True)
 
-    end_states.append(board.who_won())
-    victories.append(board.who_won()*sideT)
+    return winner, game
 
-    if game % 10 == 0:
-        print("Game {} goes to {} ({})".format(str(game), ["tie", "best", "hof"][board.who_won()*sideT], ['Tie', 'X', 'O'][board.who_won()]))
+def train(hof, loops, loop_length, epsilon, model):
+    end_states = []
+    victories = []
+    games = []
 
-print("Training complete.")
-print("Saving trained model to models/modelXO and chart to plots folder")
+    # Initialize values
+    hof.store(model)
+    model_hof = hof.sample()
 
-plot_wins(end_states, run_length=50, labels=['X', 'O'])
-plot_wins(victories, run_length=50, labels=["Best", "HOF"])
+    # Determine who will play as X and 0
+    side_best = [-1, 1][random.random() > 0.5]
+    side_hof = side_best * -1
 
-modelXO.save('models/modelXO')
+    for loop in range(loops):
+        print("\nLoop: ", loop)
+
+        # Initialize the agents
+        agent_best = Agent(model, side_best)
+        agent_hof = Agent(model_hof, side_hof)
+
+        for game in range(loop_length):
+            run_game(agent_best, agent_hof, epsilon, training=True)
+
+        # Run a diagnostic (non-training, no exploration) game to collect data
+        diagnostic_winner, game_data = run_game(agent_best, agent_hof, 0, training=False)
+
+        # Switch sides for the next loop
+        side_best *= -1
+        side_hof = side_best * -1
+
+        # Update hall of fame and sample from it for the next loop
+        hof.gate(model)
+        model_hof = hof.sample("uniform")
+
+        # Store data from loop
+        games.append(game_data)
+        end_states.append(diagnostic_winner)
+        victories.append(diagnostic_winner*side_best)
+
+    return model, end_states, victories, games
+
+if __name__ == "__main__":
+    main()

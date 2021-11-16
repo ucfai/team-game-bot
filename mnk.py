@@ -5,11 +5,11 @@ import numpy as np
 
 
 class Board:
-    def __init__(self, m, n, k, flatten=True, hist_length=-1):
+    def __init__(self, m, n, k, form="flatten", hist_length=-1):
         self.m = m
         self.n = n
         self.k = k
-        self.flatten = flatten
+        self.form = form
         self.hist_length = hist_length
         self.board = np.zeros((m, n), dtype=int)
         self.empty = 0
@@ -39,9 +39,11 @@ class Board:
             self.board_history[0] = self.undo_buffer
             self.undo_buffer = np.zeros((self.m, self.n), dtype=int)
 
-
     def flip_players(self):
         self.player, self.opponent = self.opponent, self.player
+
+    def num_legal_moves(self):
+            return len(self.legal_moves())
 
     def who_won(self):
         if self.player_has_lost():
@@ -53,7 +55,7 @@ class Board:
             # draw
             return 0
 
-    # does a move by changing the board and current player
+    # Does a move by changing the board and current player
     def move(self, x, y):
         assert 0 <= x < self.m and 0 <= y < self.n, "Illegal move - Out of bounds"
         assert self.board[x][y] == self.empty, "Illegal move - Spot already taken"
@@ -61,13 +63,13 @@ class Board:
         self.add_history()
         self.flip_players()
 
-    # undoes everything done in the move method
+    # Undoes everything done in the move method
     def undo_move(self, x, y):
         self.board[x][y] = self.empty
         self.del_history()
         self.flip_players()
 
-    # generates and returns a list of all legal moves
+    # Generates and returns a list of all legal moves
     def legal_moves(self):
         moves = []
         for x, column in enumerate(self.board):
@@ -79,19 +81,31 @@ class Board:
     def num_legal_moves(self):
         return len(self.legal_moves())
 
-    # reshapes board into 1-dimensional array for feeding as input to model if flatten is True
+    # Reshapes board into the form needed for the model
     def get_board(self):
-        if self.flatten:
-            return np.copy(self.board.reshape(1, self.m * self.n))
-        else:
-            return np.copy(self.board.reshape(1, 3, 3, 1))
+        if self.form == "flatten":
+            return np.copy(self.board.reshape(1, 1, self.m * self.n))
+        elif self.form == "planar":
+            return np.copy(self.board.reshape(1, self.m, self.n, 1))
+        elif self.form == "multiplanar":
+            board_planes = np.zeros((self.m, self.n, 2), dtype=int)
+            for i in range(self.m):
+                for j in range(self.n):
+                    if self.board[i][j] == 1:
+                        board_planes[i][j][0] = 1
+                    elif self.board[i][j] == -1:
+                        board_planes[i][j][1] = 1
+            return np.copy(board_planes.reshape(1, self.m, self.n, 2))
 
-    # converting numbers to their respective game values
+    def game_ongoing(self):
+        return not ( self.player_has_lost() or (self.num_legal_moves() == 0) )
+
+    # Converting numbers to their respective game values
     @staticmethod
     def print_cast(move):
         return 'O_X'[move + 1]
 
-    # allows for printing of the current board state
+    # Allows for printing of the current board state
     def __str__(self):
         string = ''
         for i, row in enumerate(reversed(list(zip(*self.board)))):
