@@ -18,15 +18,14 @@ def main():
     hof = HOF("menagerie")
 
     # Each loop trains n games and then does one diagnostic game without exploration moves
-    num_loops = 200
-    loop_length = 50 # also doubles as print_frequency
+    num_loops = 2000
+    loop_length = 25 # also doubles as print_frequency
     epsilon = 0.2  # exploration constant
-    decay_freq = 30  # number of games between each epsilon decrement [Currently not being used]
-    decay_factor = 0.0005  # how much to decrease by [Currently not being used]
+    decay_factor = 0.0005  # how much to decrease epsilon by each loop
     plot_run_length = num_loops // 10
 
     # Run training and store final model
-    model, end_states, victories, games = train(hof, num_loops, loop_length, epsilon, Model())
+    model, end_states, victories, games = train(hof, num_loops, loop_length, Model(), epsilon, decay_factor)
 
     print("Training complete.")
     print("Saving trained model to models/modelXO and charts to plots folder")
@@ -84,7 +83,7 @@ def run_game(agent_train, agent_versing, epsilon, training):
 
     return winner, game
 
-def train(hof, loops, loop_length, epsilon, model):
+def train(hof, loops, loop_length, model, epsilon, decay_factor):
     end_states = []
     victories = []
     games = []
@@ -106,6 +105,8 @@ def train(hof, loops, loop_length, epsilon, model):
 
         for game in range(loop_length):
             run_game(agent_best, agent_hof, epsilon, training=True)
+
+        epsilon -= decay_factor
 
         # Run a diagnostic (non-training, no exploration) game to collect data
         diagnostic_winner, game_data = run_game(agent_best, agent_hof, 0, training=False)
