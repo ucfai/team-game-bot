@@ -6,17 +6,20 @@ from agent import Agent
 from model import Model
 from plot import plot_wins
 from hof import HOF
+import sys
 
 mnk = (3, 3, 3)
 
 def main():
 
+    assert len(sys.argv) == 2, "Please name the model you are training (ex: python3 train.py 3LayersModel)"
+
     # Initialize hall of fame
     hof = HOF("menagerie")
 
     # Each loop trains n games and then does one diagnostic game without exploration moves
-    num_loops = 20
-    loop_length = 5 # also doubles as print_frequency
+    num_loops = 200
+    loop_length = 50 # also doubles as print_frequency
     epsilon = 0.2  # exploration constant
     decay_freq = 30  # number of games between each epsilon decrement [Currently not being used]
     decay_factor = 0.0005  # how much to decrease by [Currently not being used]
@@ -28,7 +31,7 @@ def main():
     print("Training complete.")
     print("Saving trained model to models/modelXO and charts to plots folder")
 
-    model.save_to('models/modelXO')
+    model.save_to('models/' + sys.argv[1])
 
     # Create data plots
     plt.subplots(3, 3, constrained_layout=True)
@@ -45,12 +48,14 @@ def main():
     plt.show()
     plt.savefig("plots/plot{}.png".format(num_loops * loop_length))
 
+    '''
     ind = 0
     while ind != -1:
         ind = int(input("Query a game: "))
         for move in games[ind]:
             print(move)
         pass
+    '''
 
 # Runs a game from start to end
 def run_game(agent_train, agent_versing, epsilon, training):

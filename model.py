@@ -18,6 +18,7 @@ class Model:
         self.model = Sequential()
         self.model.add(Dense(27, input_shape=(1, 9), kernel_initializer='normal', activation='tanh'))
         self.model.add(Dense(27, kernel_initializer='normal', activation='tanh'))
+        self.model.add(Dense(9, kernel_initializer='normal', activation='relu'))
         self.model.add(Dense(1, kernel_initializer='normal', activation='tanh'))
 
         self.model.compile(loss='mean_squared_error', optimizer=opt)

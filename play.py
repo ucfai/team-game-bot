@@ -1,9 +1,13 @@
 from agent import Agent
 import mnk
 import tensorflow as tf
+import model
+import sys
 
 board = mnk.Board(3, 3, 3, form="flatten")
-model = tf.keras.models.load_model('models/modelXO')
+
+assert len(sys.argv) == 2, "Please specify which model you would like to play against (ex: python3 play.py 3LayersModel)"
+model = model.Model('models/' + sys.argv[1])
 
 print("\n\n" + str(board))
 current_player = input("\nWho plays first (Me/AI)? ")
