@@ -4,12 +4,15 @@ from matplotlib import pyplot
 import os
 from math import floor
 from model import Model
+from agent import Agent
+from mnk import Board
 
 
 class HOF:
-    def __init__(self, folder):
+    def __init__(self, mnk, folder):
         self.hof = []
         self.folder = folder
+        self.mnk = mnk
         self.sample_history = []
         self.pop_size = 0
         self.basel = 0  # Used in limit-uniform sampling
@@ -41,6 +44,8 @@ class HOF:
                     break
         elif method == 'uniform':
             ind = floor(random.random()*self.pop_size)
+        elif method == 'naive':
+            ind = self.pop_size-1
 
         self.sample_history.append(ind)
 
@@ -52,4 +57,33 @@ class HOF:
         pyplot.hist(self.sample_history, num)
         pyplot.title("Sampling of Model Indices from HOF")
         pyplot.show()
+
+    # Displays a winrate matrix of the historical policies for the given player
+    def winrate_matrix(self, iterations):
+        matrix = []
+        for i in range (0, self.pop_size, iterations):
+            matrix.append([])
+            for j in range (0, self.pop_size, iterations):
+                model_i = Model("{}/{}".format(self.folder, self.hof[i]))
+                model_j = Model("{}/{}".format(self.folder, self.hof[j]))
+
+                value = self.run_game(Agent(model_i, 1), Agent(model_j, -1))
+                matrix[-1].append(value)
+        pyplot.imshow(matrix, cmap="bwr")
+
+    def run_game(self, agent1, agent2):
+        board = Board(*self.mnk, form="multiplanar-2", hist_length=-1)
+        
+        while board.game_ongoing():
+            if board.player == agent1.player:
+                agent1.action(board)
+            else:
+                agent2.action(board)
+
+        return board.who_won()
+
+
+
+
+
 

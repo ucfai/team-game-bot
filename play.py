@@ -1,14 +1,15 @@
 from agent import Agent
 import mnk
 import tensorflow as tf
+from model import Model
 
-board = mnk.Board(3, 3, 3, form="flatten")
+board = mnk.Board(3, 3, 3, form="multiplanar-2")
 model = tf.keras.models.load_model('models/modelXO')
 
 print("\n\n" + str(board))
 current_player = input("\nWho plays first (Me/AI)? ")
 ai_side = [-1, 1][current_player == "AI"]
-agent = Agent(model, ai_side)
+agent = Agent(Model("models/modelXO"), ai_side)
 
 while board.who_won() == 2:
     if current_player == 'Me':

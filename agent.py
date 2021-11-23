@@ -29,7 +29,7 @@ class Agent:
         legal_moves = board.legal_moves()
         return legal_moves[random.randint(0, len(legal_moves) - 1)]
 
-    def action(self, board, training, epsilon=0):
+    def action(self, board, training=False, epsilon=0):
         legal_moves = board.legal_moves()
         assert len(legal_moves) > 0, "No legal moves can be played."
 

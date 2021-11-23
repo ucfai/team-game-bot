@@ -11,13 +11,13 @@ mnk = (3, 3, 3)
 
 # Runs a game from start to end
 def run_game(agent_train, agent_versing, epsilon, training):
-    board = Board(*mnk, form="flatten", hist_length=-1)
+    board = Board(*mnk, form="multiplanar-2", hist_length=-1)
     game = []
 
     while board.game_ongoing():
         # Select a move
         if board.player == agent_versing.player:
-            agent_versing.action(board, False, 0)
+            agent_versing.action(board)
         else:
             agent_train.action(board, training, epsilon)
         
@@ -42,30 +42,36 @@ def train(hof, loops, loop_length, epsilon, model):
     hof.store(model)
     model_hof = hof.sample()
 
-    # Determine who will play as X and 0
-    side_best = [-1, 1][random.random() > 0.5]
-    side_hof = side_best * -1
-
     for loop in range(loops):
         print("\n loop: ",loop)
 
-        # Initialize the agents
-        agent_best = Agent(model, side_best)
-        agent_hof = Agent(model_hof, side_hof)
+        side_best = [-1, 1][random.random() > 0.5]
+        side_hof = side_best * -1
 
         for game in range(loop_length):
+            # Initialize the agents
+            agent_best = Agent(model, side_best)
+            agent_hof = Agent(model_hof, side_hof)
+
             run_game(agent_best, agent_hof, epsilon, training=True)
 
-        # Run a diagnostic (non-training, no exploration) game to collect data
-        diagnostic_winner, game_data = run_game(agent_best, agent_hof, 0, training=False)
+            # Switch sides for the next game
+            side_best = [-1, 1][random.random() > 0.5]
+            side_hof = side_best * -1
 
-        # Switch sides for the next loop
-        side_best *= -1
-        side_hof = side_best * -1
+            model_hof = hof.sample("uniform")
 
         # Update hall of fame and sample from it for the next loop
         hof.gate(model)
-        model_hof = hof.sample("uniform")
+
+        side_best *= -1
+        side_hof = side_best * -1
+
+        agent_best = Agent(model, side_best)
+        agent_hof = Agent(model_hof, side_hof)
+
+        # Run a diagnostic (non-training, no exploration) game to collect data
+        diagnostic_winner, game_data = run_game(agent_best, agent_hof, 0, training=False)
 
         # Store data from loop
         games.append(game_data)
@@ -78,9 +84,9 @@ def train(hof, loops, loop_length, epsilon, model):
 
 if __name__ == "__main__":
     # Initialize hall of fame
-    hof = HOF("menagerie")
+    hof = HOF(mnk, "menagerie")
 
-    num_loops = 10
+    num_loops = 20000
     loop_length = 5
 
     # Run training and store final model
@@ -92,17 +98,21 @@ if __name__ == "__main__":
     model.save_to('models/modelXO')
 
     # Create data plots
+    plt.figure()
     plt.subplot(3, 1, 1)
-    plot_wins(end_states, 50)
+    plot_wins(end_states, 100)
 
     plt.subplot(3, 1, 2)
-    plot_wins(victories, 50, ["Best", "HOF"])
+    plot_wins(victories, 100, ["Best", "HOF"])
 
     plt.subplot(3, 1, 3)
     hof.sample_histogram(20)
-
-    plt.show()
     plt.savefig("plots/plot{}.png".format(num_loops * loop_length))
+
+    print("Calculating winrate matrix")
+    hof.winrate_matrix(150)
+    plt.show()
+
 
     ind = 0
     while ind != -1:
