@@ -6,31 +6,9 @@ from agent import Agent
 from model import Model
 from plot import plot_wins
 from hof import HOF
+from utils import run_game
 
 mnk = (3, 3, 3)
-
-# Runs a game from start to end
-def run_game(agent_train, agent_versing, epsilon, training):
-    board = Board(*mnk, form="multiplanar-2", hist_length=-1)
-    game = []
-
-    while board.game_ongoing():
-        # Select a move
-        if board.player == agent_versing.player:
-            agent_versing.action(board)
-        else:
-            agent_train.action(board, training, epsilon)
-        
-        # Store game for later analysis
-        game.append(board.__str__())
-
-    winner = board.who_won()
-
-    # Back up the terminal state value to the last action chosen by training agent
-    if winner != agent_train.player and training:
-        agent_train.model.td_update(board, terminal=True)
-
-    return winner, game
 
 
 def train(hof, loops, loop_length, epsilon, model):
@@ -43,7 +21,7 @@ def train(hof, loops, loop_length, epsilon, model):
     model_hof = hof.sample()
 
     for loop in range(loops):
-        print("\n loop: ",loop)
+        print("\n loop: ", loop)
 
         side_best = [-1, 1][random.random() > 0.5]
         side_hof = side_best * -1
@@ -71,13 +49,12 @@ def train(hof, loops, loop_length, epsilon, model):
         agent_hof = Agent(model_hof, side_hof)
 
         # Run a diagnostic (non-training, no exploration) game to collect data
-        diagnostic_winner, game_data = run_game(agent_best, agent_hof, 0, training=False)
+        diagnostic_winner, game_data = run_game(agent_best, agent_hof, 0, training=False, mnk=mnk)
 
         # Store data from loop
         games.append(game_data)
         end_states.append(diagnostic_winner)
         victories.append(diagnostic_winner*side_best)
-
 
     return model, end_states, victories, games
 
@@ -112,7 +89,6 @@ if __name__ == "__main__":
     print("Calculating winrate matrix")
     hof.winrate_matrix(150)
     plt.show()
-
 
     ind = 0
     while ind != -1:

@@ -6,6 +6,7 @@ from math import floor
 from model import Model
 from agent import Agent
 from mnk import Board
+from utils import run_game
 
 
 class HOF:
@@ -67,20 +68,9 @@ class HOF:
                 model_i = Model("{}/{}".format(self.folder, self.hof[i]))
                 model_j = Model("{}/{}".format(self.folder, self.hof[j]))
 
-                value = self.run_game(Agent(model_i, 1), Agent(model_j, -1))
+                value = run_game(Agent(model_i, 1), Agent(model_j, -1))
                 matrix[-1].append(value)
         pyplot.imshow(matrix, cmap="bwr")
-
-    def run_game(self, agent1, agent2):
-        board = Board(*self.mnk, form="multiplanar-2", hist_length=-1)
-        
-        while board.game_ongoing():
-            if board.player == agent1.player:
-                agent1.action(board)
-            else:
-                agent2.action(board)
-
-        return board.who_won()
 
 
 

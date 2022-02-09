@@ -4,21 +4,22 @@ from keras.models import Sequential
 from keras.layers import Dense, Conv2D, Flatten, Dropout, MaxPooling2D
 from tensorflow.keras.optimizers import SGD
 
+
 class Model:
 
-    def __init__(self, location=False):
+    def __init__(self, location=None):
 
         # If a location is provided, retrieve the model stored at that location
-        if location != False:
+        if location is not None:
             self.model = self.retrieve(location)
             return
 
         opt = SGD(learning_rate=0.02, momentum=0.0)
 
         self.model = Sequential()
-        self.model.add(Conv2D(48, 3, activation='relu', input_shape=(3,3,2)))
+        self.model.add(Conv2D(48, 3, activation='relu', input_shape=(3, 3, 2)))
         self.model.add(Flatten())
-        self.model.add(Dense(27, kernel_initializer='normal', activation='relu', input_shape=(1,18)))
+        self.model.add(Dense(27, kernel_initializer='normal', activation='relu', input_shape=(1, 18)))
         self.model.add(Dense(1, kernel_initializer='normal', activation='tanh'))
 
         self.model.compile(loss='mean_squared_error', optimizer=opt)
@@ -73,11 +74,15 @@ class Model:
             return 0.001
 
     # Performs a temporal difference update of the model
-    def td_update(self, board, greedy_move=(), terminal=False):
+    def td_update(self, board, greedy_move=None, terminal=False):
+        # Ensures td_update is possible (agent has experienced 2 states)
+        if len(board.history()) < 3:
+            return
+
         callback = tf.keras.callbacks.LearningRateScheduler(self.scheduler)
         if terminal:
             assert board.who_won() != 2
-            assert greedy_move == ()
+            assert greedy_move is None
             self.model.fit(board.history()[-2], self.state_value(board), batch_size=1, verbose=0, callbacks=[callback])
         else:
             self.model.fit(board.history()[-2], self.action_value(board, greedy_move), batch_size=1, verbose=0, callbacks=[callback])

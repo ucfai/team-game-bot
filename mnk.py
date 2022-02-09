@@ -34,7 +34,7 @@ class Board:
         if self.hist_length == -1 or len(self.board_history) < self.hist_length:
             self.board_history.pop()
         else:
-            for i in range(0,len(self.board_history)-1, -1):
+            for i in range(0, len(self.board_history)-1, -1):
                 self.board_history[i+1] = self.board_history[i]
             self.board_history[0] = self.undo_buffer
             self.undo_buffer = np.zeros((self.m, self.n), dtype=int)
@@ -93,7 +93,7 @@ class Board:
                     elif self.board[i][j] == -1:
                         board_planes[i][j][1] = 1
             return np.copy(board_planes.reshape(1, self.m, self.n, 2))
-        elif self.form == "multiplanar-2":
+        elif self.form == "multiplanar-turnflipped":
             board_planes = np.zeros((self.m, self.n, 2), dtype=int)
             for i in range(self.m):
                 for j in range(self.n):
@@ -103,9 +103,8 @@ class Board:
                         board_planes[i][j][1] = 1
             return np.copy(board_planes.reshape(1, self.m, self.n, 2))
 
-
     def game_ongoing(self):
-        return not ( self.player_has_lost() or (self.num_legal_moves() == 0) )
+        return not (self.player_has_lost() or (self.num_legal_moves() == 0))
 
     # Converting numbers to their respective game values
     @staticmethod
