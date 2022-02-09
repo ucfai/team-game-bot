@@ -3,6 +3,7 @@ import tensorflow as tf
 from keras.models import Sequential
 from keras.layers import Dense, Conv2D, Flatten, Dropout, MaxPooling2D
 from tensorflow.keras.optimizers import SGD
+from state_representation import get_input_rep
 
 
 class Model:
@@ -35,7 +36,7 @@ class Model:
         if board.who_won() != 2:
             return tf.constant(board.who_won(), dtype="float32", shape=(1, 1))
         else:
-            return board.player*self.model(board.get_board())
+            return board.player*self.model(get_input_rep(board.get_board()))
 
     def raw_action_value(self, board, move):
         board.move(*move)
@@ -53,7 +54,7 @@ class Model:
         elif board.who_won() == -1*board.player:
             return tf.constant(-1, dtype="float32", shape=(1, 1))
         else:
-            return self.model(board.get_board())
+            return self.model(get_input_rep(board.get_board()))
 
     # Returns the value of taking a move from the given board state
     def action_value(self, board, move):
@@ -83,7 +84,7 @@ class Model:
         if terminal:
             assert board.who_won() != 2
             assert greedy_move is None
-            self.model.fit(board.history()[-2], self.state_value(board), batch_size=1, verbose=0, callbacks=[callback])
+            self.model.fit(get_input_rep(board.history()[-2]), self.state_value(board), batch_size=1, verbose=0, callbacks=[callback])
         else:
-            self.model.fit(board.history()[-2], self.action_value(board, greedy_move), batch_size=1, verbose=0, callbacks=[callback])
+            self.model.fit(get_input_rep(board.history()[-2]), self.action_value(board, greedy_move), batch_size=1, verbose=0, callbacks=[callback])
 

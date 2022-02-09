@@ -11,55 +11,7 @@ from utils import run_game
 mnk = (3, 3, 3)
 
 
-def train(hof, loops, loop_length, epsilon, model):
-    end_states = []
-    victories = []
-    games = []
-
-    # Initialize values
-    hof.store(model)
-    model_hof = hof.sample()
-
-    for loop in range(loops):
-        print("\n loop: ", loop)
-
-        side_best = [-1, 1][random.random() > 0.5]
-        side_hof = side_best * -1
-
-        for game in range(loop_length):
-            # Initialize the agents
-            agent_best = Agent(model, side_best)
-            agent_hof = Agent(model_hof, side_hof)
-
-            run_game(agent_best, agent_hof, epsilon, training=True)
-
-            # Switch sides for the next game
-            side_best = [-1, 1][random.random() > 0.5]
-            side_hof = side_best * -1
-
-            model_hof = hof.sample("uniform")
-
-        # Update hall of fame and sample from it for the next loop
-        hof.gate(model)
-
-        side_best *= -1
-        side_hof = side_best * -1
-
-        agent_best = Agent(model, side_best)
-        agent_hof = Agent(model_hof, side_hof)
-
-        # Run a diagnostic (non-training, no exploration) game to collect data
-        diagnostic_winner, game_data = run_game(agent_best, agent_hof, 0, training=False, mnk=mnk)
-
-        # Store data from loop
-        games.append(game_data)
-        end_states.append(diagnostic_winner)
-        victories.append(diagnostic_winner*side_best)
-
-    return model, end_states, victories, games
-
-
-if __name__ == "__main__":
+def main():
     # Initialize hall of fame
     hof = HOF(mnk, "menagerie")
 
@@ -96,3 +48,58 @@ if __name__ == "__main__":
         for move in games[ind]:
             print(move)
         pass
+
+
+def train(hof, loops, loop_length, epsilon, model):
+    end_states = []
+    victories = []
+    games = []
+
+    # Initialize values
+    hof.store(model)
+    model_hof = hof.sample()
+
+    try:
+        for loop in range(loops):
+            print("\n loop: ", loop)
+
+            side_best = [-1, 1][random.random() > 0.5]
+            side_hof = side_best * -1
+
+            for game in range(loop_length):
+                # Initialize the agents
+                agent_best = Agent(model, side_best)
+                agent_hof = Agent(model_hof, side_hof)
+
+                run_game(agent_best, agent_hof, epsilon, training=True)
+
+                # Switch sides for the next game
+                side_best = [-1, 1][random.random() > 0.5]
+                side_hof = side_best * -1
+
+                model_hof = hof.sample("uniform")
+
+            # Update hall of fame and sample from it for the next loop
+            hof.gate(model)
+
+            side_best *= -1
+            side_hof = side_best * -1
+
+            agent_best = Agent(model, side_best)
+            agent_hof = Agent(model_hof, side_hof)
+
+            # Run a diagnostic (non-training, no exploration) game to collect data
+            diagnostic_winner, game_data = run_game(agent_best, agent_hof, 0, training=False, mnk=mnk)
+
+            # Store data from loop
+            games.append(game_data)
+            end_states.append(diagnostic_winner)
+            victories.append(diagnostic_winner*side_best)
+    except KeyboardInterrupt:
+        print("Training interrupted")
+
+    return model, end_states, victories, games
+
+
+if __name__ == "__main__":
+    main()

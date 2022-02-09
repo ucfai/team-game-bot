@@ -83,28 +83,7 @@ class Board:
 
     # Reshapes board into the form needed for the model
     def get_board(self):
-        if self.form == "flatten":
-            return np.copy(self.board.reshape(1, 1, self.m * self.n))
-        elif self.form == "planar":
-            return np.copy(self.board.reshape(1, self.m, self.n, 1))
-        elif self.form == "multiplanar":
-            board_planes = np.zeros((self.m, self.n, 2), dtype=int)
-            for i in range(self.m):
-                for j in range(self.n):
-                    if self.board[i][j] == 1:
-                        board_planes[i][j][0] = 1
-                    elif self.board[i][j] == -1:
-                        board_planes[i][j][1] = 1
-            return np.copy(board_planes.reshape(1, self.m, self.n, 2))
-        elif self.form == "multiplanar-turnflipped":
-            board_planes = np.zeros((self.m, self.n, 2), dtype=int)
-            for i in range(self.m):
-                for j in range(self.n):
-                    if self.board[i][j] == self.player:
-                        board_planes[i][j][0] = 1
-                    elif self.board[i][j] == -1*self.player:
-                        board_planes[i][j][1] = 1
-            return np.copy(board_planes.reshape(1, self.m, self.n, 2))
+        return (self.board, self.player)
 
     def game_ongoing(self):
         return not (self.player_has_lost() or (self.num_legal_moves() == 0))
