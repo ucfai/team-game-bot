@@ -1,7 +1,7 @@
 # TODO: PLOT LOSS CURVES
 from mnk import Board
 import random
-from matplotlib import pyplot as plt
+import matplotlib.pyplot as plt
 from agent import Agent
 from model import Model
 from plot import plot_wins

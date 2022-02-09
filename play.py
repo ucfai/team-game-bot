@@ -1,15 +1,18 @@
 from agent import Agent
 import mnk
 import tensorflow as tf
-from model import Model
+import model
+import sys
 
-board = mnk.Board(3, 3, 3, form="multiplanar-2")
-model = tf.keras.models.load_model('models/modelXO')
+board = mnk.Board(3, 3, 3, form="flatten")
+
+assert len(sys.argv) == 2, "Please specify which model you would like to play against (ex: python3 play.py 3LayersModel)"
+model = model.Model('models/' + sys.argv[1])
 
 print("\n\n" + str(board))
 current_player = input("\nWho plays first (Me/AI)? ")
 ai_side = [-1, 1][current_player == "AI"]
-agent = Agent(Model("models/modelXO"), ai_side)
+agent = Agent(model, ai_side)
 
 while board.who_won() == 2:
     if current_player == 'Me':

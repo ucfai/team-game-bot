@@ -78,6 +78,9 @@ class Board:
                     moves.append((x, y))
         return moves
 
+    def num_legal_moves(self):
+        return len(self.legal_moves())
+
     # Reshapes board into the form needed for the model
     def get_board(self):
         if self.form == "flatten":
@@ -127,6 +130,9 @@ class Board:
                 else:
                     string += '\n'
         return string
+
+    def game_ongoing(self):
+        return not ( self.player_has_lost() or (self.num_legal_moves() == 0) )
 
     # returns True if the player whose turn it is has lost, False otherwise
     def player_has_lost(self):

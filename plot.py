@@ -1,10 +1,10 @@
-from matplotlib import pyplot as plt
-
+import matplotlib.pyplot as plt
 
 def plot_wins(game_outcomes, run_length, labels=['X', 'O']):
     xs = []
     os = []
     ties = []
+    num_games = len(game_outcomes)
 
     values = [0, 0, 0]
 
@@ -24,8 +24,6 @@ def plot_wins(game_outcomes, run_length, labels=['X', 'O']):
     plt.plot(game, os, label="{} wins".format(labels[1]))
     plt.plot(game, ties, label="Ties")
     plt.legend()
-    plt.title("Number of Each End State for Previous {} Games".format(run_length))
+    plt.title("Training data for {} Games".format(num_games))
     plt.xlabel("Game number")
     plt.ylabel("Wins out of previous {} games".format(run_length))
-
-
