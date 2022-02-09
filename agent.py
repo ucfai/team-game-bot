@@ -6,7 +6,7 @@ import random
 
 class Agent:
 
-    def __init__(self, model, player):
+    def __init__(self, model, player):                              # Where are you using player?
         self.model = model
         self.player = player
 

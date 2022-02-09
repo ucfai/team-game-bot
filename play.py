@@ -6,8 +6,8 @@ import sys
 
 board = mnk.Board(3, 3, 3, form="flatten")
 
-assert len(sys.argv) == 2, "Please specify which model you would like to play against (ex: python3 play.py 3LayersModel)"
-model = model.Model('models/' + sys.argv[1])
+assert len(sys.argv) == 2, "Please specify which model you would like to play against (ex: python3 play.py models/PedrosModel)"
+model = model.Model(sys.argv[1])
 
 print("\n\n" + str(board))
 current_player = input("\nWho plays first (Me/AI)? ")
