@@ -6,9 +6,9 @@ import random
 
 class Agent:
 
-    def __init__(self, model, player):                              # Where are you using player?
+    def __init__(self, model, player):
         self.model = model
-        self.player = player
+        self.player = player    # -1 or 1 representing if playing as X or O
 
     def greedy_action(self, board):
         legal_moves = board.legal_moves()
