@@ -1,0 +1,123 @@
+*, *::after, *::before {
+	box-sizing: border-box;
+}
+
+:root {
+	--cell-size: 100px;
+	--gap-size: 4px;
+	--mark-size: calc(var(--cell-size) * .9);
+}
+
+body {
+}
+
+.board {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	display: grid;
+	grid-gap: var(--gap-size);
+	width: calc(3 * var(--cell-size) + 2 * var(--gap-size));
+	height: calc(3 * var(--cell-size) + 2 * var(--gap-size));
+	background-color: black;
+	grid-template-columns: repeat(3, 1fr);
+}
+
+.cell {
+	width: var(--cell-size);
+	height: var(--cell-size);
+	background-color: white;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+/* BEGIN MARK STYLING */
+
+.cell.x::before,
+.cell.x::after,
+.board.x .cell:not(.x):not(.circle):hover::before,
+.board.x .cell:not(.x):not(.circle):hover::after {
+	content: '';
+	position: absolute;
+	width: calc(var(--mark-size) * .15);
+	height: var(--mark-size);
+	background-color: black;
+}
+
+.board.x .cell:not(.x):not(.circle):hover::before,
+.board.x .cell:not(.x):not(.circle):hover::after {
+	background-color: lightgray;
+}
+
+.cell.x::before,
+.board.x .cell:not(.x):not(.circle):hover::before {
+	transform: rotate(45deg);
+}
+
+.cell.x::after,
+.board.x .cell:not(.x):not(.circle):hover::after {
+	transform: rotate(-45deg);
+}
+
+.cell.circle::before,
+.cell.circle::after,
+.board.circle .cell:not(.x):not(.circle):hover::before,
+.board.circle .cell:not(.x):not(.circle):hover::after {
+	content: '';
+	position: absolute;
+	border-radius: 50%;
+}
+
+.cell.circle::before,
+.board.circle .cell:not(.x):not(.circle):hover::before {
+	width: var(--mark-size);
+	height: var(--mark-size);
+	background-color: black;
+}
+
+.board.circle .cell:not(.x):not(.circle):hover::before {
+	background-color: lightgray;
+}
+
+.cell.circle::after,
+.board.circle .cell:not(.x):not(.circle):hover::after {
+	width: calc(var(--mark-size) * .7);
+	height: calc(var(--mark-size) * .7);
+	background-color: white;
+}
+
+/* END MARK STYLING */
+
+.winning-message {
+	display: none;
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background-color: rgba(0, 0, 0, .9);
+	justify-content: center;
+	align-items: center;
+	color: white;
+	font-size: 5rem;
+	flex-direction: column;
+}
+
+.winning-message button {
+	font-size: 3rem;
+	background-color: white;
+	border: 1px solid black;
+	padding: .25em .5em;
+}
+
+.winning-message button:hover {
+	background-color: black;
+	color: white;
+	border-color: white;
+}
+
+.winning-message.show {
+	display: flex;
+}
