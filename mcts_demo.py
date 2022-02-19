@@ -64,7 +64,7 @@ def mcts(board, node):
             board.move(*move)
             moves_played.append(move)
         for move in reversed(moves_played):
-            board.undo_move(*move)
+            board.undo_move()
         if board.who_won() == 2:
             node.expand(board.legal_moves())
     else:
@@ -76,7 +76,7 @@ def mcts(board, node):
                 max_child = child
         board.move(*max_child.last_move)
         winner = mcts(board, max_child)
-        board.undo_move(*max_child.last_move)
+        board.undo_move()
     if winner == board.player:
         node.w += 1
     if winner == 0:

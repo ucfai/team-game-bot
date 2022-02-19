@@ -86,7 +86,7 @@ class Model:
         """
         board.move(*move)
         val = self.raw_value(board)
-        board.undo_move(*move)
+        board.undo_move()
 
         return val
 
@@ -127,7 +127,7 @@ class Model:
         """
         board.move(*move)
         val = self.state_value(board)
-        board.undo_move(*move)
+        board.undo_move()
         return val
 
     def scheduler(self, epoch, lr):

@@ -17,6 +17,7 @@ class Board:
         self.opponent = -1
         self.board_history = []
         self.undo_buffer = np.zeros((m, n), dtype=int)
+        self.move_history = []
 
     def history(self):
         return self.board_history
@@ -62,9 +63,11 @@ class Board:
         self.board[x][y] = self.player
         self.add_history()
         self.flip_players()
+        self.move_history.append((x, y))
 
     # Undoes everything done in the move method
-    def undo_move(self, x, y):
+    def undo_move(self):
+        x, y = self.move_history.pop()
         self.board[x][y] = self.empty
         self.del_history()
         self.flip_players()
@@ -110,50 +113,51 @@ class Board:
 
     # returns True if the player whose turn it is has lost, False otherwise
     def player_has_lost(self):
+        if len(self.move_history) == 0:
+            return False
+        last_x, last_y = self.move_history[-1]
         # check vertical line |
-        for column in self.board:
-            count = 0
-            for cell in column:
-                if cell == self.opponent:
-                    count += 1
-                else:
-                    count = 0
-                if count == self.k:
-                    return True
+        count = 0
+        for y in range(self.n):
+            if self.board[last_x][y] == self.opponent:
+                count += 1
+            else:
+                count = 0
+            if count == self.k:
+                return True
         # check horizontal line -
-        for row in zip(*self.board):
-            count = 0
-            for cell in row:
-                if cell == self.opponent:
-                    count += 1
-                else:
-                    count = 0
-                if count == self.k:
-                    return True
+        count = 0
+        for x in range(self.m):
+            if self.board[x][last_y] == self.opponent:
+                count += 1
+            else:
+                count = 0
+            if count == self.k:
+                return True
         # check diagonal line \
-        for x_plus_y in range(self.m + self.n - 1):
-            count = 0
-            for x in range(self.m):
-                y = x_plus_y - x
-                if y < 0 or y >= self.n:
-                    continue
-                if self.board[x][y] == self.opponent:
-                    count += 1
-                else:
-                    count = 0
-                if count == self.k:
-                    return True
+        x_plus_y = last_x + last_y
+        count = 0
+        for x in range(self.m):
+            y = x_plus_y - x
+            if y < 0 or y >= self.n:
+                continue
+            if self.board[x][y] == self.opponent:
+                count += 1
+            else:
+                count = 0
+            if count == self.k:
+                return True
         # check diagonal line /
-        for x_minus_y in range(1 - self.n, self.m):
-            count = 0
-            for x in range(self.m):
-                y = x - x_minus_y
-                if y < 0 or y >= self.n:
-                    continue
-                if self.board[x][y] == self.opponent:
-                    count += 1
-                else:
-                    count = 0
-                if count == self.k:
-                    return True
+        x_minus_y = last_x - last_y
+        count = 0
+        for x in range(self.m):
+            y = x - x_minus_y
+            if y < 0 or y >= self.n:
+                continue
+            if self.board[x][y] == self.opponent:
+                count += 1
+            else:
+                count = 0
+            if count == self.k:
+                return True
         return False
