@@ -1,77 +1,72 @@
 import random
 import math
+import mnk
 
 def main():
-    width, height = map(int, input('Size? (width height): ').split())
-    order = int(input('#-in-a-row?: '))
+    m, n = map(int, input('Size? (width height): ').split())
+    k = int(input('#-in-a-row?: '))
     iterations = int(input('AI iterations?: '))
-    human = random.choice('XO')
-    player = 'X'
+    human = random.choice([1, -1])
+    player = 1
 
-    grid = [['_']*height for x in range(width)]
-    board = Board(grid, width, height, order)
-    root = Node(board, player)
-    root.print()
+    board = mnk.Board(m, n, k)
+    root = Node()
+    print(board)
     while True:
-        if root.player == human:
-            print()
+        if root.isLeaf:
+                root.expand(board.legal_moves())
+        if board.player == human:
             x, y = map(int, input('Move? (x y): ').split())
             x -= 1
             y -= 1
-            if root.isLeaf:
-                root.expand()
-            root = root.move(x, y)
+            root = root.move((x, y))
+            board.move(x, y)
         else:
-            root = AI(root, iterations)
-        if root.isLeaf:
-            root.expand()
-        root.print()
-        winner = root.winner()
+            print('AI moves')
+            root = AI(board, root, iterations)
+            # print(board.legal_moves())
+            board.move(*root.last_move)
+        print(board)
+        winner = board.who_won()
         if winner == human:
-            print()
             print('You win!')
             break
-        elif winner == flip(human):
-            print()
+        elif winner == -human:
             print('You lose :(')
             break
-        elif len(root.children) == 0:
-            print()
+        elif winner == 0:
             print('You tie.')
             break
 
-def flip(player):
-    if player == 'X':
-        return 'O'
-    if player == 'O':
-        return 'X'
+def AI(board, node, iterations):
+    for i in range(iterations):
+       mcts(board, node)
+    max_n = -1
+    for child in node.children:
+        # print('Move: {0}, w: {1}, n: {2}'.format(child.last_move, child.n - child.w, child.n))
+        if child.n > max_n:
+            max_n = child.n
+            max_child = child
+    return max_child
 
-class Board:
-    def __init__(self, grid, width, height, order):
-        self.grid = grid
-        self.width = width
-        self.height = height
-        self.order = order
-    def copy(self):
-        grid_copy = [row.copy() for row in self.grid]
-        return Board(grid_copy, self.width, self.height, self.order)
-    def __getitem__(self, x):
-        return self.grid[x]
-    def print(self):
-        print()
-        for y in range(self.height-1, -1, -1):
-            for x in range(self.width):
-                print(self[x][y], end='')
-                if x != self.width-1:
-                    print('|', end='')
-                else:
-                    print()
-
-def mcts(node):
+def mcts(board, node):
     if node.isLeaf:
-        winner = node.rollout() 
-        if node.winner() == 'incomplete':
-            node.expand()
+        moves_played = []
+        while True:
+            winner = board.who_won()
+            if winner != 2:
+                break
+            legal_moves = board.legal_moves()
+            if len(legal_moves) == 0:
+                winner = 0
+                break
+            move = random.choice(legal_moves)
+            board.move(*move)
+            moves_played.append(move)
+        for move in reversed(moves_played):
+            board.undo_move(*move)
+        if board.who_won() == 2:
+            node.expand(board.legal_moves())
     else:
         max_UCT = -1
         for child in node.children:
@@ -79,127 +74,36 @@ def mcts(node):
             if UCT > max_UCT:
                 max_UCT = UCT
                 max_child = child
-        winner = mcts(max_child)
-    if winner == node.player:
+        board.move(*max_child.last_move)
+        winner = mcts(board, max_child)
+        board.undo_move(*max_child.last_move)
+    if winner == board.player:
         node.w += 1
-    if winner == 'draw':
+    if winner == 0:
         node.w += 0.5
     node.n += 1
     return winner
 
-def AI(node, iterations):
-    for i in range(iterations):
-       mcts(node)
-    max_n = -1
-    for child in node.children:
-        # child.print()
-        # print(child.n - child.w, child.n)
-        if child.n > max_n:
-            max_n = child.n
-            max_child = child
-    return max_child
-
 class Node:
-    def __init__(self, board, player):
-        self.board = board
-        self.player = player
-        self.isLeaf = True
+    def __init__(self, last_move = None):
+        self.last_move = last_move
         self.w = 0
         self.n = 0
         self.children = []
-        self.solved = False
-    def print(self):
-        self.board.print()
+        self.isLeaf = True
+
+    def move(self, move):
+        for child in self.children:
+            if child.last_move == move:
+                return child
+
+    def expand(self, legal_moves):
+        for move in legal_moves:
+            self.children.append(Node(move))
+            self.isLeaf = False
+
     def UCT(self, N, c):
         return (self.n - self.w) / (self.n + 1) + c * math.sqrt(math.log(N + 1) / (self.n + 1))
-    def expand(self):
-        for y in range(self.board.height):
-            for x in range(self.board.width):
-                if self.board[x][y] == '_':
-                    board_copy = self.board.copy()
-                    board_copy[x][y] = self.player
-                    self.children.append(Node(board_copy, flip(self.player)))
-                    self.isLeaf = False
-        if self.isLeaf:
-            self.solved = True
-    def move(self, x, y):
-        for node in self.children:
-            if node.board[x][y] == self.player:
-                return node
-    def rollout(self):
-        board_copy = self.board.copy()
-        current_player = self.player
-        while True:
-            winner = Node.board_winner(board_copy)
-            if winner != 'incomplete':
-                return winner
-            possible_moves = []
-            for y in range(board_copy.height):
-                for x in range(board_copy.width):
-                    if self.board[x][y] == '_':
-                        possible_moves.append((x, y))
-            if len(possible_moves) == 0:
-                return 'draw'
-            x, y = random.choice(possible_moves)
-            board_copy[x][y] = current_player
-            current_player = flip(current_player)
-    def winner(self):
-        return Node.board_winner(self.board)
-    def board_winner(board):
-        for player in 'XO':
-            # horizontal -
-            for y in range(board.height):
-                count = 0
-                for x in range(board.width):
-                    if board[x][y] == player:
-                        count += 1
-                    else:
-                        count = 0
-                    if count == board.order:
-                        return player
-            # vertical |
-            for x in range(board.width):
-                count = 0
-                for y in range(board.height):
-                    if board[x][y] == player:
-                        count += 1
-                    else:
-                        count = 0
-                    if count == board.order:
-                        return player
-            # diagonal \
-            for x_plus_y in range(board.width + board.height - 1):
-                count = 0
-                for x in range(board.width):
-                    y = x_plus_y - x
-                    if y < 0 or y >= board.height:
-                        continue
-                    if board[x][y] == player:
-                        count += 1
-                    else:
-                        count = 0
-                    if count == board.order:
-                        return player
-            # diagonal /
-            for x_minus_y in range(1 - board.height, board.width):
-                count = 0
-                for x in range(board.width):
-                    y = x - x_minus_y
-                    if y < 0 or y >= board.height:
-                        continue
-                    if board[x][y] == player:
-                        count += 1
-                    else:
-                        count = 0
-                    if count == board.order:
-                        return player
-        # incomplete
-        for x in range(board.width):
-            for y in range(board.height):
-                if board[x][y] == '_':
-                    return 'incomplete'
-        # draw
-        return 'draw'
 
 if __name__ == '__main__':
     main()

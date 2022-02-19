@@ -98,12 +98,7 @@ class Board:
         string = ''
         for i, row in enumerate(reversed(list(zip(*self.board)))):
             for x, cell in enumerate(row):
-                # avoids printing '_' on bottom edge of grid
-                if i == self.n - 1 and cell == self.empty:
-                    string += ' '
-                else:
-                    string += self.print_cast(cell)
-
+                string += self.print_cast(cell)
                 if x != self.m - 1:
                     string += '|'
                 else:
@@ -136,12 +131,11 @@ class Board:
                 if count == self.k:
                     return True
         # check diagonal line \
-        for u in range(self.m + self.n - 1):
+        for x_plus_y in range(self.m + self.n - 1):
             count = 0
-            for v in range(u + 1):
-                x = u - v
-                y = v
-                if x >= self.m or y >= self.n:
+            for x in range(self.m):
+                y = x_plus_y - x
+                if y < 0 or y >= self.n:
                     continue
                 if self.board[x][y] == self.opponent:
                     count += 1
@@ -150,12 +144,11 @@ class Board:
                 if count == self.k:
                     return True
         # check diagonal line /
-        for u in range(self.m + self.n - 1):
+        for x_minus_y in range(1 - self.n, self.m):
             count = 0
-            for v in range(u + 1):
-                x = u - v
-                y = self.n - 1 - v
-                if x >= self.m or y < 0:
+            for x in range(self.m):
+                y = x - x_minus_y
+                if y < 0 or y >= self.n:
                     continue
                 if self.board[x][y] == self.opponent:
                     count += 1
