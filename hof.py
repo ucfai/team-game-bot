@@ -24,7 +24,7 @@ class HOF:
         model.save_to("{}/{}".format(self.folder, self.pop_size))
         self.hof.append(self.pop_size)
         self.pop_size += 1
-        self.basel += 1/self.pop_size**2
+        self.basel += 1 / self.pop_size**2
 
     # Gating method decides whether to add the model to the hall of fame
     def gate(self, model):
@@ -54,11 +54,12 @@ class HOF:
         return Model("{}/{}".format(self.folder, name))
 
     # Displays a histogram of the model iterations sampled from the hall of fame
-    def sample_histogram(self, num=100):
+    def sample_histogram(self, num=100):                                                # Move to plot.py?
         pyplot.hist(self.sample_history, num)
         pyplot.title("Sampling of Model Indices from HOF")
         pyplot.show()
 
+    ''' === MOVED TO PLOT.PY LMK IF I CAN DELETE IT FROM HERE ===
     # Displays a winrate matrix of the historical policies for the given player
     def winrate_matrix(self, iterations):
         matrix = []
@@ -68,12 +69,9 @@ class HOF:
                 model_i = Model("{}/{}".format(self.folder, self.hof[i]))
                 model_j = Model("{}/{}".format(self.folder, self.hof[j]))
 
-                value = run_game(Agent(model_i, 1), Agent(model_j, -1))
+                value = run_game(Agent(model_i, 1), Agent(model_j, -1))[0]
                 matrix[-1].append(value)
+
         pyplot.imshow(matrix, cmap="bwr")
-
-
-
-
-
-
+        pyplot.imsave("plots/Matrix.png", matrix, cmap="bwr")
+    '''

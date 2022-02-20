@@ -3,7 +3,7 @@ import random
 import matplotlib.pyplot as plt
 from agent import Agent
 from model import Model
-from plot import plot_wins
+from plot import plot_wins, save_plots
 from hof import HOF
 from utils import run_game, arg_parser
 from save_model import save_model
@@ -23,30 +23,13 @@ def main():
     hof = HOF(mnk, folder="menagerie")
 
     print("\nTraining model: {}\n".format(model_name))
-
-    # Run training and store final model
-    model, end_states, victories, games = train(hof, num_batches, games_per_batch, epsilon, Model())
+    model, winnersXO, winnersHOF, games = train(hof, num_batches, games_per_batch, epsilon, Model())
 
     save_model(model, model_name)
-
-    # Create data plots                                                              # All this should be in plot.py preferably
-    plt.figure()
-    plt.subplot(3, 1, 1)
-    plot_wins(end_states, 100)
-
-    plt.subplot(3, 1, 2)
-    plot_wins(victories, 100, ["Best", "HOF"])
-
-    plt.subplot(3, 1, 3)
-    hof.sample_histogram(20)
-    plt.savefig("plots/plot{}.png".format(num_batches * games_per_batch))
-
-    print("Calculating winrate matrix")
-    hof.winrate_matrix(150)
-    plt.show()
+    save_plots(hof, model_name, winnersXO, winnersHOF)
 
     # Can be used after looking at plot to analyze important milestones
-    ind = 0                                                                          # Put into a function or even separate file
+    ind = 0                                                                          # Put into a function
     while ind != -1:
         ind = int(input("Query a game: "))
         for move in games[ind]:
@@ -55,8 +38,8 @@ def main():
 
 
 def train(hof, num_batches, games_per_batch, epsilon, model):
-    end_states = []
-    victories = []
+    winnersXO = []
+    winnersHOF = []
     games = []
 
     # Initialize hall of fame
@@ -64,7 +47,7 @@ def train(hof, num_batches, games_per_batch, epsilon, model):
 
     try:
         for batch_number in range(num_batches):
-            print("Batch: ", batch_number, "(Games {}-{})".format(batch_number * games_per_batch + 1, (batch_number + 1) * games_per_batch))
+            print("Batch:", batch_number, "(Games {}-{})".format(batch_number * games_per_batch + 1, (batch_number + 1) * games_per_batch))
 
             # Runs a batch of games, after which we can play/save a diagnostic game to see if it improved and store current model to hof
             for game in range(games_per_batch):
@@ -97,8 +80,8 @@ def train(hof, num_batches, games_per_batch, epsilon, model):
 
             # Store data from diagnostic game for this batch
             games.append(game_data)
-            end_states.append(diagnostic_winner)
-            victories.append(diagnostic_winner*side_best)
+            winnersXO.append(diagnostic_winner)            # X or O
+            winnersHOF.append(diagnostic_winner*side_best)   # Best or HOF
 
     except KeyboardInterrupt:
         print("\n=======================")
@@ -106,7 +89,7 @@ def train(hof, num_batches, games_per_batch, epsilon, model):
         print("=======================")
 
     print("Training completed.")
-    return model, end_states, victories, games
+    return model, winnersXO, winnersHOF, games
 
 
 if __name__ == "__main__":
