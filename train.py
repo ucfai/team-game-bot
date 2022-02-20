@@ -5,10 +5,12 @@ from agent import Agent
 from model import Model
 from plot import plot_wins
 from hof import HOF
-from utils import run_game
-from save_model import save_model, name
+from utils import run_game, arg_parser
+from save_model import save_model
 import sys
 
+# Set cmd-line training arguments
+verbose, mcts, model_name = arg_parser(sys.argv)
 mnk = (3, 3, 3)
 
 def main():
@@ -18,15 +20,14 @@ def main():
     games_per_batch = 5
     epsilon = 0.2               # Epsilon is the exploration factor: probability with which a random move is chosen to play
 
-    # Declare hall of fame
     hof = HOF(mnk, folder="menagerie")
 
-    print("Training model: {}".format(name(sys.argv)))
+    print("\nTraining model: {}\n".format(model_name))
 
     # Run training and store final model
     model, end_states, victories, games = train(hof, num_batches, games_per_batch, epsilon, Model())
 
-    save_model(model, sys.argv)
+    save_model(model, model_name)
 
     # Create data plots                                                              # All this should be in plot.py preferably
     plt.figure()
@@ -92,14 +93,17 @@ def train(hof, num_batches, games_per_batch, epsilon, model):
             agent_hof = Agent(model_hof, side_hof)
 
             # Run a diagnostic (non-training, no exploration) game to collect data
-            diagnostic_winner, game_data = run_game(agent_best, agent_hof, 0, training=False, mnk=mnk)
+            diagnostic_winner, game_data = run_game(agent_best, agent_hof, 0, training=False, mnk=mnk, verbose=verbose)
 
             # Store data from diagnostic game for this batch
             games.append(game_data)
             end_states.append(diagnostic_winner)
             victories.append(diagnostic_winner*side_best)
+
     except KeyboardInterrupt:
+        print("\n=======================")
         print("Training interrupted.")
+        print("=======================")
 
     print("Training completed.")
     return model, end_states, victories, games
