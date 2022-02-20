@@ -7,7 +7,7 @@ import os
 
 def plot_wins(outcomes, model_name, players):
 
-    # We don't plot total wins for each playter bc the graph would always increase, making performance evaluation harder.
+    # We don't plot total wins for each player bc the graph would always increase, making performance evaluation harder.
     # Instead, we plot runs: how many of the previous n games were won. This way, if a model begins performing worse, its line will decrease.
 
     player1_wins, player2_wins, ties = [], [], []
