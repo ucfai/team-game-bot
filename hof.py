@@ -53,11 +53,13 @@ class HOF:
         name = self.hof[ind]
         return Model("{}/{}".format(self.folder, name))
 
+    ''' === MOVED TO PLOT.PY LMK IF I CAN DELETE IT FROM HERE ===
     # Displays a histogram of the model iterations sampled from the hall of fame
-    def sample_histogram(self, num=100):                                                # Move to plot.py?
+    def sample_histogram(self, num=100):
         pyplot.hist(self.sample_history, num)
         pyplot.title("Sampling of Model Indices from HOF")
         pyplot.show()
+    '''
 
     ''' === MOVED TO PLOT.PY LMK IF I CAN DELETE IT FROM HERE ===
     # Displays a winrate matrix of the historical policies for the given player

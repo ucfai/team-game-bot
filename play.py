@@ -6,7 +6,7 @@ import sys
 
 board = mnk.Board(3, 3, 3, form="flatten")
 
-assert len(sys.argv) == 2, "Please specify which model you would like to play against (ex: python3 play.py models/PedrosModel)"
+assert len(sys.argv) == 2, "Please specify which model you would like to play against (ex: python3 play.py models/PedrosModel).\n Tab complete works!"
 model = model.Model(sys.argv[1])
 
 print("\n\n" + str(board))

@@ -7,7 +7,7 @@ import os
 
 def plot_wins(outcomes, model_name, players):
 
-    # We don't plot total wins for each playter bc the graph would always increase, making performance evaluation harder.
+    # We don't plot total wins for each player bc the graph would always increase, making performance evaluation harder.
     # Instead, we plot runs: how many of the previous n games were won. This way, if a model begins performing worse, its line will decrease.
 
     player1_wins, player2_wins, ties = [], [], []
@@ -37,10 +37,15 @@ def plot_wins(outcomes, model_name, players):
     plt.xlabel("Game #")
     plt.ylabel("Wins out of previous {} games".format(run_length))
 
+# Displays a histogram of the model iterations sampled from the hall of fame
+def sample_histogram(sample_history, bins=100):
+    plt.hist(sample_history, bins)
+    plt.title("Sampling of Model Indices from HOF")
+    plt.show()
 
 # 1v1 matrix for historical models: ideally, newer versions beating earlier ones
 def winrate_matrix(num_games, step):
-    print("Calculating winrate matrix...")
+    print("Calculating winrate matrix... (may take a few mins)")
     matrix = []
     for i in range (0, num_games, step):
         matrix.append([])
@@ -74,7 +79,7 @@ def save_plots(hof, model_name, winnersXO, winnersHOF):
     plt.savefig("{}/HOF.png".format(plots_dir))
     plt.clf()
 
-    hof.sample_histogram(20)
+    sample_histogram(hof.sample_history, 20)
     plt.savefig("{}/Sampling.png".format(plots_dir))
     plt.clf()
 
