@@ -7,7 +7,6 @@ def main():
     k = int(input('#-in-a-row?: '))
     iterations = int(input('AI iterations?: '))
     human = random.choice([1, -1])
-    player = 1
 
     board = mnk.Board(m, n, k)
     root = Node()
@@ -24,7 +23,6 @@ def main():
         else:
             print('AI moves')
             root = AI(board, root, iterations)
-            # print(board.legal_moves())
             board.move(*root.last_move)
         print(board)
         winner = board.who_won()
@@ -43,7 +41,6 @@ def AI(board, node, iterations):
        mcts(board, node)
     max_n = -1
     for child in node.children:
-        # print('Move: {0}, w: {1}, n: {2}'.format(child.last_move, child.n - child.w, child.n))
         if child.n > max_n:
             max_n = child.n
             max_child = child
@@ -51,20 +48,7 @@ def AI(board, node, iterations):
 
 def mcts(board, node):
     if node.isLeaf:
-        moves_played = []
-        while True:
-            winner = board.who_won()
-            if winner != 2:
-                break
-            legal_moves = board.legal_moves()
-            if len(legal_moves) == 0:
-                winner = 0
-                break
-            move = random.choice(legal_moves)
-            board.move(*move)
-            moves_played.append(move)
-        for move in reversed(moves_played):
-            board.undo_move()
+        winner = rollout(board)
         if board.who_won() == 2:
             node.expand(board.legal_moves())
     else:
@@ -82,6 +66,20 @@ def mcts(board, node):
     if winner == 0:
         node.w += 0.5
     node.n += 1
+    return winner
+
+def rollout(board):
+    moves_played = 0
+    while True:
+        winner = board.who_won()
+        if winner != 2:
+            break
+        legal_moves = board.legal_moves()
+        move = random.choice(legal_moves)
+        board.move(*move)
+        moves_played += 1
+    for _ in range(moves_played):
+        board.undo_move()
     return winner
 
 class Node:
