@@ -3,9 +3,8 @@ import math
 import mnk
 
 def main():
-    m, n = map(int, input('Size? (width height): ').split())
-    k = int(input('#-in-a-row?: '))
-    iterations = int(input('AI iterations?: '))
+    m, n, k = map(int, input('Choose m, n, and k: ').split())
+    iterations = int(input('Choose AI Iterations: '))
     human = random.choice([1, -1])
 
     board = mnk.Board(m, n, k)
@@ -15,13 +14,13 @@ def main():
         if root.isLeaf:
                 root.expand(board.legal_moves())
         if board.player == human:
-            x, y = map(int, input('Move? (x y): ').split())
+            x, y = map(int, input('Make a move (x y): ').split())
             x -= 1
             y -= 1
             root = root.move((x, y))
             board.move(x, y)
         else:
-            print('AI moves')
+            print('AI is thinking')
             root = AI(board, root, iterations)
             board.move(*root.last_move)
         print(board)
@@ -39,12 +38,7 @@ def main():
 def AI(board, node, iterations):
     for i in range(iterations):
        mcts(board, node)
-    max_n = -1
-    for child in node.children:
-        if child.n > max_n:
-            max_n = child.n
-            max_child = child
-    return max_child
+    return max(node.children, key=lambda child: child.n)
 
 def mcts(board, node):
     if node.isLeaf:
@@ -52,14 +46,9 @@ def mcts(board, node):
         if board.who_won() == 2:
             node.expand(board.legal_moves())
     else:
-        max_UCT = -1
-        for child in node.children:
-            UCT = child.UCT(node.n, math.sqrt(2))
-            if UCT > max_UCT:
-                max_UCT = UCT
-                max_child = child
-        board.move(*max_child.last_move)
-        winner = mcts(board, max_child)
+        next_state = node.max_child()
+        board.move(*next_state.last_move)
+        winner = mcts(board, next_state)
         board.undo_move()
     if winner == board.player:
         node.w += 1
@@ -100,8 +89,11 @@ class Node:
             self.children.append(Node(move))
             self.isLeaf = False
 
-    def UCT(self, N, c):
-        return (self.n - self.w) / (self.n + 1) + c * math.sqrt(math.log(N + 1) / (self.n + 1))
+    def UCT(self, N):
+        return (self.n - self.w) / (self.n + 1) + math.sqrt(2 * math.log(N + 1) / (self.n + 1))
+    
+    def max_child(self):
+        return max(self.children, key=lambda child: child.UCT(self.n))
 
 if __name__ == '__main__':
     main()
