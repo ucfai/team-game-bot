@@ -13,17 +13,50 @@ import sys
 verbose, mcts, model_name = arg_parser(sys.argv)
 mnk = (3, 3, 3)
 
-def main():
 
+def run_training_game(agent_train, agent_versing, epsilon=0, mnk=(3, 3, 3), verbose=False):
+    board = Board(*mnk, hist_length=-1)
+    game = []
+    state, action = None, None
+
+    while board.game_ongoing():
+        # Select a move
+        if board.player == agent_versing.player:
+            board.move(*agent_versing.action(board))
+        else:
+            move = agent_train.action(board, epsilon)
+
+            if state is not None and action is not None:
+                agent_train.model.td_update(state, action, board.get_board())
+
+            state, action = board.get_board(), move
+            board.move(*move)
+
+        # Store game for later analysis
+        game.append(board.__str__())
+
+    winner = board.who_won()
+
+    # Back up the terminal state value to the last action chosen by training agent
+    if winner != agent_train.player:
+        agent_train.model.td_update(state, action, board.get_board())
+
+    if verbose:
+        print(board)
+
+    return winner, game
+
+
+def main():
     # Hyperparameter List
-    num_batches = 20_000        # Total training games = num_batches * games_per_batch
+    num_batches = 20        # Total training games = num_batches * games_per_batch
     games_per_batch = 5
     epsilon = 0.2               # Epsilon is the exploration factor: probability with which a random move is chosen to play
 
     hof = HOF(mnk, folder="menagerie")
 
     print("\nTraining model: {}\n".format(model_name))
-    model, winnersXO, winnersHOF, games = train(hof, num_batches, games_per_batch, epsilon, Model())
+    model, winnersXO, winnersHOF, games = train(hof, num_batches, games_per_batch, epsilon, Model(mnk))
 
     save_model(model, model_name)
     save_plots(hof, model_name, winnersXO, winnersHOF)
@@ -63,7 +96,7 @@ def train(hof, num_batches, games_per_batch, epsilon, model):
                 agent_hof = Agent(model_hof, side_hof)
 
                 # Play game and train on its outcome
-                run_game(agent_best, agent_hof, epsilon, training=True)
+                run_training_game(agent_best, agent_hof, epsilon, mnk)
 
             # Gate will determine if model is worthy, and store in hof only if it is (Currently, it just stores every game)
             hof.gate(model)
@@ -76,7 +109,7 @@ def train(hof, num_batches, games_per_batch, epsilon, model):
             agent_hof = Agent(model_hof, side_hof)
 
             # Run a diagnostic (non-training, no exploration) game to collect data
-            diagnostic_winner, game_data = run_game(agent_best, agent_hof, 0, training=False, mnk=mnk, verbose=verbose)
+            diagnostic_winner, game_data = run_game(agent_best, agent_hof, mnk=mnk, verbose=verbose)
 
             # Store data from diagnostic game for this batch
             games.append(game_data)

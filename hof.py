@@ -51,7 +51,7 @@ class HOF:
         self.sample_history.append(ind)
 
         name = self.hof[ind]
-        return Model("{}/{}".format(self.folder, name))
+        return Model(self.mnk, "{}/{}".format(self.folder, name))
 
     ''' === MOVED TO PLOT.PY LMK IF I CAN DELETE IT FROM HERE ===
     # Displays a histogram of the model iterations sampled from the hall of fame
