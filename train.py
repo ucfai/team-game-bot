@@ -8,6 +8,8 @@ from hof import HOF
 from utils import run_game, arg_parser
 from save_model import save_model
 import sys
+import os
+import shutil
 
 # Set cmd-line training arguments
 verbose, mcts, model_name = arg_parser(sys.argv)
@@ -20,13 +22,15 @@ def main():
     games_per_batch = 5
     epsilon = 0.2               # Epsilon is the exploration factor: probability with which a random move is chosen to play
 
-    hof = HOF(mnk, folder="menagerie")
+    hof_folder = "menagerie"    # Folder to store the hall-of-fame models
+    hof = HOF(mnk, folder=hof_folder)
 
     print("\nTraining model: {}\n".format(model_name))
     model, winnersXO, winnersHOF, games = train(hof, num_batches, games_per_batch, epsilon, Model())
 
     save_model(model, model_name)
     save_plots(hof, model_name, winnersXO, winnersHOF)
+    clear_hof(hof_folder)
 
     # Can be used after looking at plot to analyze important milestones
     ind = 0                                                                          # Put into a function
@@ -91,6 +95,12 @@ def train(hof, num_batches, games_per_batch, epsilon, model):
     print("Training completed.")
     return model, winnersXO, winnersHOF, games
 
+def clear_hof(folder):
+    if os.path.isdir(folder):
+        try:
+            shutil.rmtree(folder)
+        except:
+            print("Error while clearing HOF folder.")
 
 if __name__ == "__main__":
     main()
