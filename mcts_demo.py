@@ -36,7 +36,7 @@ def main():
             break
 
 def AI(board, node, iterations):
-    for i in range(iterations):
+    for _ in range(iterations):
        mcts(board, node)
     return max(node.children, key=lambda child: child.n)
 

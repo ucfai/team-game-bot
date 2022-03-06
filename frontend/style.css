@@ -1,14 +1,7 @@
-*, *::after, *::before {
-	box-sizing: border-box;
-}
-
 :root {
 	--cell-size: 100px;
 	--gap-size: 4px;
 	--mark-size: calc(var(--cell-size) * .9);
-}
-
-body {
 }
 
 .board {
@@ -35,10 +28,10 @@ body {
 
 /* BEGIN MARK STYLING */
 
-.cell.x::before,
-.cell.x::after,
-.board.x .cell:not(.x):not(.circle):hover::before,
-.board.x .cell:not(.x):not(.circle):hover::after {
+.cell.X::before,
+.cell.X::after,
+.board.X .cell:not(.X):not(.O):hover::before,
+.board.X .cell:not(.X):not(.O):hover::after {
 	content: '';
 	position: absolute;
 	width: calc(var(--mark-size) * .15);
@@ -46,43 +39,43 @@ body {
 	background-color: black;
 }
 
-.board.x .cell:not(.x):not(.circle):hover::before,
-.board.x .cell:not(.x):not(.circle):hover::after {
+.board.X .cell:not(.X):not(.O):hover::before,
+.board.X .cell:not(.X):not(.O):hover::after {
 	background-color: lightgray;
 }
 
-.cell.x::before,
-.board.x .cell:not(.x):not(.circle):hover::before {
+.cell.X::before,
+.board.X .cell:not(.X):not(.O):hover::before {
 	transform: rotate(45deg);
 }
 
-.cell.x::after,
-.board.x .cell:not(.x):not(.circle):hover::after {
+.cell.X::after,
+.board.X .cell:not(.X):not(.O):hover::after {
 	transform: rotate(-45deg);
 }
 
-.cell.circle::before,
-.cell.circle::after,
-.board.circle .cell:not(.x):not(.circle):hover::before,
-.board.circle .cell:not(.x):not(.circle):hover::after {
+.cell.O::before,
+.cell.O::after,
+.board.O .cell:not(.X):not(.O):hover::before,
+.board.O .cell:not(.X):not(.O):hover::after {
 	content: '';
 	position: absolute;
 	border-radius: 50%;
 }
 
-.cell.circle::before,
-.board.circle .cell:not(.x):not(.circle):hover::before {
+.cell.O::before,
+.board.O .cell:not(.X):not(.O):hover::before {
 	width: var(--mark-size);
 	height: var(--mark-size);
 	background-color: black;
 }
 
-.board.circle .cell:not(.x):not(.circle):hover::before {
+.board.O .cell:not(.X):not(.O):hover::before {
 	background-color: lightgray;
 }
 
-.cell.circle::after,
-.board.circle .cell:not(.x):not(.circle):hover::after {
+.cell.O::after,
+.board.O .cell:not(.X):not(.O):hover::after {
 	width: calc(var(--mark-size) * .7);
 	height: calc(var(--mark-size) * .7);
 	background-color: white;
@@ -90,7 +83,7 @@ body {
 
 /* END MARK STYLING */
 
-.winning-message {
+.winningMessage {
 	display: none;
 	position: fixed;
 	top: 0;
@@ -105,19 +98,19 @@ body {
 	flex-direction: column;
 }
 
-.winning-message button {
+.winningMessage button {
 	font-size: 3rem;
 	background-color: white;
 	border: 1px solid black;
 	padding: .25em .5em;
 }
 
-.winning-message button:hover {
+.winningMessage button:hover {
 	background-color: black;
 	color: white;
 	border-color: white;
 }
 
-.winning-message.show {
+.winningMessage.show {
 	display: flex;
 }
