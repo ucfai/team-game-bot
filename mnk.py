@@ -5,19 +5,25 @@ import numpy as np
 
 
 class Board:
-    def __init__(self, m, n, k, form="flatten", hist_length=-1):
+    def __init__(self, m, n, k, hist_length=-1, state=None):
+        if state is None:
+            self.board = np.zeros((m, n), dtype=int)
+            self.player, self.opponent = 1, -1
+        else:
+            self.board, self.player = state
+            self.opponent = self.player * -1
+
         self.m = m
         self.n = n
         self.k = k
-        self.form = form
         self.hist_length = hist_length
-        self.board = np.zeros((m, n), dtype=int)
         self.empty = 0
-        self.player = 1
-        self.opponent = -1
         self.board_history = []
         self.undo_buffer = np.zeros((m, n), dtype=int)
         self.move_history = []
+
+    def shape(self):
+        return self.m, self.n
 
     def history(self):
         return self.board_history
@@ -86,7 +92,7 @@ class Board:
 
     # Reshapes board into the form needed for the model
     def get_board(self):
-        return (self.board, self.player)
+        return self.board, self.player
 
     def game_ongoing(self):
         return not (self.player_has_lost() or (self.num_legal_moves() == 0))
