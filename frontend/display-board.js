@@ -1,10 +1,11 @@
-var input_board_test = [[-1, 0, 0, 0, -1], [0, 1, 0, -1, 0], [0, 0, 1, 0, 0], [1, 1, 1, 0, 0], [-1, -1, 1, 0, 0]]
+// 10x10 Example
+var input_board_test = [[-1,1,-1,-1,-1,1,0,0,0,1],[-1,-1,1,0,0,1,-1,0,1,0],[-1,-1,1,1,-1,1,-1,0,0,1],[0,-1,0,-1,-1,0,1,-1,0,0],[-1,1,-1,0,-1,1,0,-1,1,1],[1,-1,1,0,0,-1,1,1,1,0],[-1,1,1,-1,-1,1,0,-1,1,0],[1,0,0,-1,-1,-1,-1,-1,-1,-1],[-1,1,-1,1,-1,-1,1,1,-1,1],[0,1,1,0,0,-1,-1,1,1,-1]]
 
 var n = input_board_test.length
 var m = input_board_test[0].length
 
-let size = 100 - ((Math.max(n, m) - 3) * 10)
-document.documentElement.style.setProperty("--cell-size", `${size}px`);
+let cellSize = 100 - Math.min(((Math.max(n, m) - 3) * 8), 50)
+document.documentElement.style.setProperty("--cell-size", `${cellSize}px`);
 
 document.getElementById('board').style.setProperty("grid-template-columns", `repeat(${m}, 1fr)`);
 
