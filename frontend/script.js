@@ -1,5 +1,5 @@
 const cells = document.querySelectorAll('.cell')
-const board = document.querySelector('.board')
+var board = document.querySelector('.board')
 const winningMessage = document.querySelector('.winningMessage')
 const winningMessageText = document.querySelector('.winningMessageText')
 const newGameButton = document.querySelector('.newGameButton')

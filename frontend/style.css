@@ -1,5 +1,5 @@
 :root {
-	--cell-size: 100px;
+	--cell-size: 100px;                                        /* Property gets modified by display-board.js */
 	--gap-size: 4px;
 	--mark-size: calc(var(--cell-size) * .9);
 }
@@ -11,10 +11,10 @@
 	transform: translate(-50%, -50%);
 	display: grid;
 	grid-gap: var(--gap-size);
-	width: calc(3 * var(--cell-size) + 2 * var(--gap-size));
-	height: calc(3 * var(--cell-size) + 2 * var(--gap-size));
+	width: calc(3 * var(--cell-size) + 2 * var(--gap-size));   /* Property gets modified by display-board.js */
+	height: calc(3 * var(--cell-size) + 2 * var(--gap-size));  /* Property gets modified by display-board.js */
 	background-color: black;
-	grid-template-columns: repeat(3, 1fr);
+	grid-template-columns: repeat(3, 1fr);                     /* Property gets modified by display-board.js */
 }
 
 .cell {
