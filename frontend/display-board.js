@@ -1,22 +1,29 @@
-// 10x10 Example
-var input_board_test = [[-1,1,-1,-1,-1,1,0,0,0,1],[-1,-1,1,0,0,1,-1,0,1,0],[-1,-1,1,1,-1,1,-1,0,0,1],[0,-1,0,-1,-1,0,1,-1,0,0],[-1,1,-1,0,-1,1,0,-1,1,1],[1,-1,1,0,0,-1,1,1,1,0],[-1,1,1,-1,-1,1,0,-1,1,0],[1,0,0,-1,-1,-1,-1,-1,-1,-1],[-1,1,-1,1,-1,-1,1,1,-1,1],[0,1,1,0,0,-1,-1,1,1,-1]]
+var n = 30
+var m = 30
 
-var n = input_board_test.length
-var m = input_board_test[0].length
+displayBoard(n, m);
 
-let cellSize = 100 - Math.min(((Math.max(n, m) - 3) * 8), 50)
-document.documentElement.style.setProperty("--cell-size", `${cellSize}px`);
+async function displayBoard(n, m) {
 
-document.getElementById('board').style.setProperty("grid-template-columns", `repeat(${m}, 1fr)`);
+  var input_board_test = (await fetch(`https://team-game-bot.herokuapp.com/${n}x${m}/`).then(response => { return response.json() })).board
 
-document.getElementById('board').style.setProperty("width", `${m} * var(--cell-size) + ${m-1} * var(--gap-size)`);
-document.getElementById('board').style.setProperty("height", `${n} * var(--cell-size) + ${n-1} * var(--gap-size)`);
+  var n = input_board_test.length
+  var m = input_board_test[0].length
 
-let cellType = [" O", "", " X"]
-let display = ""
+  let cellSize = 100 - Math.min(((Math.max(n, m) - 3) * 8), 50)
+  document.documentElement.style.setProperty("--cell-size", `${cellSize}px`);
 
-for (var i = 0; i < n; i++)
-  for (var j = 0; j < m; j++)
-    display += `<div class="cell${cellType[input_board_test[i][j] + 1]}" data-cell></div>`
+  document.getElementById('board').style.setProperty("grid-template-columns", `repeat(${m}, 1fr)`);
 
-document.getElementById('board').innerHTML = display;
+  document.getElementById('board').style.setProperty("width", `${m} * var(--cell-size) + ${m-1} * var(--gap-size)`);
+  document.getElementById('board').style.setProperty("height", `${n} * var(--cell-size) + ${n-1} * var(--gap-size)`);
+
+  let cellType = [" O", "", " X"]
+  let display = ""
+
+  for (var i = 0; i < n; i++)
+    for (var j = 0; j < m; j++)
+      display += `<div class="cell${cellType[input_board_test[i][j] + 1]}" data-cell></div>`
+
+  document.getElementById('board').innerHTML = display;
+}
