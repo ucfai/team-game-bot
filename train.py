@@ -1,3 +1,5 @@
+import numpy as np
+
 from mnk import Board
 import random
 import matplotlib.pyplot as plt
@@ -5,6 +7,8 @@ from agent import Agent
 from model import Model
 from plot import plot_wins, save_plots
 from hof import HOF
+from replay_buffer import ReplayBuffer
+from state_representation import get_input_rep
 from utils import run_game, arg_parser
 from save_model import save_model
 import sys
@@ -13,10 +17,26 @@ import shutil
 
 # Set cmd-line training arguments
 verbose, mcts, model_name = arg_parser(sys.argv)
+model_name = "new_model"
 mnk = (3, 3, 3)
 
 
-def run_training_game(agent_train, agent_versing, epsilon=0, mnk=(3, 3, 3), verbose=False):
+def train_on_replays(model, batch):
+    states = []
+    target_outputs = []
+    for experience in batch:
+        target_outputs.append(model.get_target(*experience))
+        states.append(get_input_rep(experience[0])[0])
+
+    states = np.asarray(states)
+
+    target_outputs = np.asarray(target_outputs)
+
+    # Theres a parameter for train_on_batch for sample weights. Use if we do importance sampling
+    model.model.fit(states, target_outputs, verbose=0)
+
+
+def run_training_game(agent_train, agent_versing, replay_buffer, epsilon=0, mnk=(3, 3, 3), verbose=False):
     board = Board(*mnk, hist_length=-1)
     game = []
     state, action = None, None
@@ -30,6 +50,8 @@ def run_training_game(agent_train, agent_versing, epsilon=0, mnk=(3, 3, 3), verb
 
             if state is not None and action is not None:
                 agent_train.model.td_update(state, action, board.get_board())
+                replay_buffer.store((state, action, board.get_board()))
+                train_on_replays(agent_train.model, replay_buffer.sample())
 
             state, action = board.get_board(), move
             board.move(*move)
@@ -51,30 +73,37 @@ def run_training_game(agent_train, agent_versing, epsilon=0, mnk=(3, 3, 3), verb
 
 def main():
     # Hyperparameter List
-    num_batches = 20        # Total training games = num_batches * games_per_batch
-    games_per_batch = 5
+    num_cycles = 8000        # Total training games = num_cycles * games_per_cycle
+    games_per_cycle = 5
+    batch_size = 16
+    buffer_size = 1000
     epsilon = 0.2               # Epsilon is the exploration factor: probability with which a random move is chosen to play
 
     hof_folder = "menagerie"    # Folder to store the hall-of-fame models
     hof = HOF(mnk, folder=hof_folder)
 
     print("\nTraining model: {}\n".format(model_name))
-    model, winnersXO, winnersHOF, games = train(hof, num_batches, games_per_batch, epsilon, Model(mnk))
+    model, winnersXO, winnersHOF, games = train(hof, num_cycles, games_per_cycle, batch_size, epsilon, buffer_size, Model(mnk))
 
     save_model(model, model_name)
-    save_plots(hof, model_name, winnersXO, winnersHOF)
+    save_plots(mnk, hof, model_name, winnersXO, winnersHOF)
     clear_hof(hof_folder)
 
     # Can be used after looking at plot to analyze important milestones
     ind = 0                                                                          # Put into a function
     while ind != -1:
         ind = int(input("Query a game: "))
+
+        if ind >= len(games):
+            print("Too large. Try again")
+            continue
+
         for move in games[ind]:
             print(move)
         pass
 
 
-def train(hof, num_batches, games_per_batch, epsilon, model):
+def train(hof, num_cycles, games_per_cycle, batch_size, epsilon, buffer_size, model):
     winnersXO = []
     winnersHOF = []
     games = []
@@ -82,12 +111,15 @@ def train(hof, num_batches, games_per_batch, epsilon, model):
     # Initialize hall of fame
     hof.store(model)
 
+    # Initialize replay buffer
+    replay_buffer = ReplayBuffer(buffer_size, batch_size)
+
     try:
-        for batch_number in range(num_batches):
-            print("Batch:", batch_number, "(Games {}-{})".format(batch_number * games_per_batch + 1, (batch_number + 1) * games_per_batch))
+        for batch_number in range(num_cycles):
+            print("Batch:", batch_number, "(Games {}-{})".format(batch_number * games_per_cycle + 1, (batch_number + 1) * games_per_cycle))
 
             # Runs a batch of games, after which we can play/save a diagnostic game to see if it improved and store current model to hof
-            for game in range(games_per_batch):
+            for game in range(games_per_cycle):
 
                 # Randomly assign sides (X or O) for game to be played
                 side_best = [-1, 1][random.random() > 0.5]
@@ -100,7 +132,7 @@ def train(hof, num_batches, games_per_batch, epsilon, model):
                 agent_hof = Agent(model_hof, side_hof)
 
                 # Play game and train on its outcome
-                run_training_game(agent_best, agent_hof, epsilon, mnk)
+                run_training_game(agent_best, agent_hof, replay_buffer, epsilon, mnk)
 
             # Gate will determine if model is worthy, and store in hof only if it is (Currently, it just stores every game)
             hof.gate(model)

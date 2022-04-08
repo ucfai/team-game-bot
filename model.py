@@ -30,11 +30,9 @@ class Model:
         opt = SGD(learning_rate=0.02, momentum=0.0)
 
         self.model = Sequential()
-        self.model.add(Conv2D(8, 3, activation='relu', padding="same", input_shape=(m, n, 2)))
-        self.model.add(Conv2D(8, 3, activation='relu', padding="same"))
-
-        self.model.add(Flatten())
-        self.model.add(Dense(8, kernel_initializer='normal', activation='relu', input_shape=(1, m * n * 2)))
+        self.model.add(Flatten(input_shape=(m, n, 2)))
+        self.model.add(Dense(16, kernel_initializer='normal', activation='relu'))
+        self.model.add(Dense(16, kernel_initializer='normal', activation='relu'))
         self.model.add(Dense(mnk[0] * mnk[1], kernel_initializer='normal', activation='tanh'))
 
         self.model.compile(loss='mean_squared_error', optimizer=opt)
@@ -114,18 +112,8 @@ class Model:
         else:
             return 0.001
 
-    def td_update(self, state, action, next_state):
-        """Performs a temporal difference update of the model.
-
-        Args:
-            board (Board): Board representing the current state of the game.
-            greedy_move ((int, int)): Move to be played. Defaults to None.
-            terminal (bool, optional): True if the current state of the game is terminal,
-                False otherwise. Defaults to False.
-        """
+    def get_target(self, state, action, next_state):
         m, n, k = self.mnk
-
-        callback = tf.keras.callbacks.LearningRateScheduler(self.scheduler)
 
         start_board = Board(*self.mnk, state=state)
         next_board = Board(*self.mnk, state=next_state)
@@ -138,5 +126,18 @@ class Model:
             target_output[0][index] = prev_output[0][index]
 
         target_output[0][action[0] * m + action[1]] = self.state_value(next_board, player=state[1])
+        return target_output
 
-        self.model.fit(get_input_rep(start_board.get_board()), target_output, batch_size=1, verbose=0, callbacks=[callback])
+    def td_update(self, state, action, next_state):
+        """Performs a temporal difference update of the model.
+
+        Args:
+            board (Board): Board representing the current state of the game.
+            greedy_move ((int, int)): Move to be played. Defaults to None.
+            terminal (bool, optional): True if the current state of the game is terminal,
+                False otherwise. Defaults to False.
+        """
+        callback = tf.keras.callbacks.LearningRateScheduler(self.scheduler)
+        target_output = self.get_target(state, action, next_state)
+
+        self.model.fit(get_input_rep(state), target_output, batch_size=1, verbose=0, callbacks=[callback])

@@ -13,7 +13,7 @@ def plot_wins(outcomes, model_name, players):
     player1_wins, player2_wins, ties = [], [], []
     run_totals = [0, 0, 0]
     num_games = len(outcomes)
-    run_length = max(num_games // 10 , 1)
+    run_length = max(num_games // 20, 1)
 
     for i, outcome in enumerate(outcomes):
         if i < run_length:
@@ -44,14 +44,14 @@ def sample_histogram(sample_history, bins=100):
     plt.show()
 
 # 1v1 matrix for historical models: ideally, newer versions beating earlier ones
-def winrate_matrix(num_games, step):
+def winrate_matrix(mnk, num_games, step):
     print("Calculating winrate matrix... (may take a few mins)")
     matrix = []
     for i in range (0, num_games, step):
         matrix.append([])
         for j in range (0, num_games, step):
-            model_i = Model("menagerie/{}".format(i))
-            model_j = Model("menagerie/{}".format(j))
+            model_i = Model(mnk, "menagerie/{}".format(i))
+            model_j = Model(mnk, "menagerie/{}".format(j))
 
             side_i = [-1, 1][random.random() > 0.5]
             side_j = side_i * -1
@@ -62,7 +62,7 @@ def winrate_matrix(num_games, step):
     return matrix
 
 
-def save_plots(hof, model_name, winnersXO, winnersHOF):
+def save_plots(mnk, hof, model_name, winnersXO, winnersHOF):
 
     # Create model's plots folder
     plots_dir = "plots/{}".format(model_name)
@@ -85,7 +85,7 @@ def save_plots(hof, model_name, winnersXO, winnersHOF):
 
     num_games = len(winnersXO)
     step = max(1, num_games // 20)
-    matrix = winrate_matrix(num_games, step)
+    matrix = winrate_matrix(mnk, num_games, step)
     plt.imshow(matrix, cmap="bwr")
     plt.imsave("plots/{}/Matrix.png".format(model_name), matrix, cmap="bwr")
     plt.clf()
