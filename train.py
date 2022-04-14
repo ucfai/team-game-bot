@@ -73,10 +73,10 @@ def run_training_game(agent_train, agent_versing, replay_buffer, epsilon=0, mnk=
 
 def main():
     # Hyperparameter List
-    total_games = 100000
+    total_games = 50000
     diagnostic_freq = 20
     resample_freq = 10
-    hof_gate_freq = 1000
+    hof_gate_freq = 2000
     batch_size = 32
     buffer_size = 4000
     epsilon = 0.2  # probability with which a random move is chosen to play

@@ -13,7 +13,7 @@ def plot_wins(outcomes, model_name, players):
     player1_wins, player2_wins, ties = [], [], []
     run_totals = [0, 0, 0]
     num_games = len(outcomes)
-    run_length = max(num_games // 20, 1)
+    run_length = max(min(num_games // 100, 100), 1)
 
     for i, outcome in enumerate(outcomes):
         if i < run_length:
@@ -36,6 +36,59 @@ def plot_wins(outcomes, model_name, players):
     plt.title("{}: {} diagnostic games".format(model_name, num_games))
     plt.xlabel("Game #")
     plt.ylabel("Wins out of previous {} games".format(run_length))
+
+
+def plot_reward(outcomes, model_name):
+
+    # We don't plot total wins for each player bc the graph would always increase, making performance evaluation harder.
+    # Instead, we plot runs: how many of the previous n games were won. This way, if a model begins performing worse, its line will decrease.
+
+    run_totals = []
+    num_games = len(outcomes)
+    run_length = max(min(num_games // 100, 100), 1)
+
+    for i, outcome in enumerate(outcomes):
+        if i == 0:
+            run_totals.append(outcome)
+        elif i < run_length:
+            run_totals.append(run_totals[-1] + outcome)
+        else:
+            run_totals.append(run_totals[-1] + outcome - outcomes[i - run_length])
+
+    game = range(num_games)
+
+    plt.plot(game, run_totals)
+
+    plt.title("{}: Reward for {} diagnostic games".format(model_name, num_games))
+    plt.xlabel("Game #")
+    plt.ylabel("Cumulative reward over previous {} games".format(run_length))
+
+def plot_improvement(outcomes, model_name):
+
+    # We don't plot total wins for each player bc the graph would always increase, making performance evaluation harder.
+    # Instead, we plot runs: how many of the previous n games were won. This way, if a model begins performing worse, its line will decrease.
+
+    run_deltas = []
+    num_games = len(outcomes)
+    run_length = max(min(num_games // 100, 100), 1)
+
+    for i, outcome in enumerate(outcomes):
+        if i == 0:
+            run_deltas.append(outcome)
+        elif i < run_length:
+            run_deltas.append(run_deltas[-1] + outcome)
+        elif i < 2 * run_length:
+            run_deltas.append(run_deltas[-1] + outcome - 2 * outcomes[i-run_length])
+        else:
+            run_deltas.append(run_deltas[-1] + outcome - 2 * outcomes[i-run_length] + outcomes[i-2*run_length])
+
+    game = range(num_games)
+
+    plt.plot(game, run_deltas)
+
+    plt.title("{}: Cumulative reward derivative for {} diagnostic games".format(model_name, num_games))
+    plt.xlabel("Game #")
+    plt.ylabel("Difference in cumulative reward for previous two {} length runs".format(run_length))
 
 # Displays a histogram of the model iterations sampled from the hall of fame
 def sample_histogram(sample_history, bins=100):
@@ -77,6 +130,14 @@ def save_plots(mnk, hof, model_name, winnersXO, winnersHOF):
 
     plot_wins(winnersHOF, model_name, ["Best", "HOF"])
     plt.savefig("{}/HOF.png".format(plots_dir))
+    plt.clf()
+
+    plot_reward(winnersHOF, model_name)
+    plt.savefig("{}/Reward.png".format(plots_dir))
+    plt.clf()
+
+    plot_improvement(winnersHOF, model_name)
+    plt.savefig("{}/Improvement.png".format(plots_dir))
     plt.clf()
 
     sample_histogram(hof.sample_history, 20)
