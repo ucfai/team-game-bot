@@ -4,10 +4,10 @@ import tensorflow as tf
 import model
 import sys
 
-board = mnk.Board(3, 3, 3, form="flatten")
+board = mnk.Board(3, 3, 3)
 
 assert len(sys.argv) == 2, "Please specify which model you would like to play against (ex: python3 play.py models/PedrosModel).\n Tab complete works!"
-model = model.Model(sys.argv[1])
+model = model.Model((3, 3, 3), sys.argv[1])
 
 print("\n\n" + str(board))
 current_player = input("\nWho plays first (Me/AI)? ")
@@ -29,7 +29,7 @@ while board.who_won() == 2:
                 print("Invalid move! Try again")
         current_player = "AI"
     else:
-        agent.action(board, False, 0)
+        board.move(*agent.action(board))
         current_player = "Me"
 
     print(board)

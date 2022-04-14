@@ -84,7 +84,7 @@ def save_plots(mnk, hof, model_name, winnersXO, winnersHOF):
     plt.clf()
 
     num_games = len(winnersXO)
-    step = max(1, num_games // 20)
+    step = max(1, num_games // 40)
     matrix = winrate_matrix(mnk, num_games, step)
     plt.imshow(matrix, cmap="bwr")
     plt.imsave("plots/{}/Matrix.png".format(model_name), matrix, cmap="bwr")

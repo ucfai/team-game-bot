@@ -1,3 +1,5 @@
+from tensorflow.keras.optimizers import Adam
+
 import mnk
 import tensorflow as tf
 import numpy as np
@@ -27,12 +29,12 @@ class Model:
             self.model = self.retrieve(location)
             return
 
-        opt = SGD(learning_rate=0.02, momentum=0.0)
+        opt = SGD(learning_rate=0.001)
 
         self.model = Sequential()
         self.model.add(Flatten(input_shape=(m, n, 2)))
-        self.model.add(Dense(16, kernel_initializer='normal', activation='relu'))
-        self.model.add(Dense(16, kernel_initializer='normal', activation='relu'))
+        self.model.add(Dense(24, kernel_initializer='normal', activation='relu'))
+        self.model.add(Dense(24, kernel_initializer='normal', activation='relu'))
         self.model.add(Dense(mnk[0] * mnk[1], kernel_initializer='normal', activation='tanh'))
 
         self.model.compile(loss='mean_squared_error', optimizer=opt)
@@ -119,13 +121,16 @@ class Model:
         next_board = Board(*self.mnk, state=next_state)
 
         prev_output = self.action_values(start_board)
-        target_output = np.zeros(shape=prev_output.shape, dtype='float32')
+        # test leaving illegal action values alone (np.copy(prev_output) rather than fill -1)
+        target_output = np.copy(prev_output)
 
-        for move in start_board.legal_moves():
-            index = move[0] * m + move[1]
-            target_output[0][index] = prev_output[0][index]
+        #target_output = np.full(shape=prev_output.shape, fill_value=-1, dtype='float32')
+        #
+        #for move in start_board.legal_moves():
+        #    index = move[0] * m + move[1]
+        #    target_output[0][index] = prev_output[0][index]
 
-        target_output[0][action[0] * m + action[1]] = self.state_value(next_board, player=state[1])
+        target_output[0][action[0] * n + action[1]] = self.state_value(next_board, player=state[1])
         return target_output
 
     def td_update(self, state, action, next_state):
@@ -137,7 +142,6 @@ class Model:
             terminal (bool, optional): True if the current state of the game is terminal,
                 False otherwise. Defaults to False.
         """
-        callback = tf.keras.callbacks.LearningRateScheduler(self.scheduler)
         target_output = self.get_target(state, action, next_state)
 
-        self.model.fit(get_input_rep(state), target_output, batch_size=1, verbose=0, callbacks=[callback])
+        self.model.fit(get_input_rep(state), target_output, batch_size=1, verbose=0)
