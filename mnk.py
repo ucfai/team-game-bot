@@ -92,7 +92,7 @@ class Board:
 
     # Reshapes board into the form needed for the model
     def get_board(self):
-        return self.board, self.player
+        return np.copy(self.board), self.player
 
     def game_ongoing(self):
         return not (self.player_has_lost() or (self.num_legal_moves() == 0))

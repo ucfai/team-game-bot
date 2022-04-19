@@ -2,10 +2,11 @@ import numpy as np
 
 from mnk import Board
 import random
+import tensorflow as tf
 import matplotlib.pyplot as plt
 from agent import Agent
-from model import Model
-from plot import plot_wins, save_plots
+from model import Model, scheduler
+from plot import Diagnostics, save_plots
 from hof import HOF
 from replay_buffer import ReplayBuffer
 from state_representation import get_input_rep
@@ -32,8 +33,9 @@ def train_on_replays(model, batch):
 
     target_outputs = np.asarray(target_outputs)
 
-    # Theres a parameter for train_on_batch for sample weights. Use if we do importance sampling
-    model.model.fit(states, target_outputs, verbose=0)
+    # Theres a parameter for sample weights. Use if we do importance sampling
+    lr_scheduler = tf.keras.callbacks.LearningRateScheduler(scheduler)
+    model.model.fit(states, target_outputs, verbose=0, callbacks=[lr_scheduler])
 
 
 def run_training_game(agent_train, agent_versing, replay_buffer, epsilon=0, mnk=(3, 3, 3), verbose=False):
@@ -62,8 +64,7 @@ def run_training_game(agent_train, agent_versing, replay_buffer, epsilon=0, mnk=
     winner = board.who_won()
 
     # Back up the terminal state value to the last action chosen by training agent
-    if winner != agent_train.player:
-        agent_train.model.td_update(state, action, board.get_board())
+    agent_train.model.td_update(state, action, board.get_board())
 
     if verbose:
         print(board)
@@ -73,10 +74,10 @@ def run_training_game(agent_train, agent_versing, replay_buffer, epsilon=0, mnk=
 
 def main():
     # Hyperparameter List
-    total_games = 50000
+    total_games = 100000
     diagnostic_freq = 20
     resample_freq = 10
-    hof_gate_freq = 2000
+    hof_gate_freq = 500
     batch_size = 32
     buffer_size = 4000
     epsilon = 0.2  # probability with which a random move is chosen to play
@@ -85,10 +86,10 @@ def main():
     hof = HOF(mnk, folder=hof_folder)
 
     print("\nTraining model: {}\n".format(model_name))
-    model, winnersXO, winnersHOF, games = train(hof, total_games, diagnostic_freq, resample_freq, hof_gate_freq, batch_size, epsilon, buffer_size, Model(mnk))
+    model, diagnostics, games = train(hof, total_games, diagnostic_freq, resample_freq, hof_gate_freq, batch_size, epsilon, buffer_size, Model(mnk))
 
     save_model(model, model_name)
-    save_plots(mnk, hof, model_name, winnersXO, winnersHOF)
+    save_plots(mnk, hof, model_name, diagnostics)
     clear_hof(hof_folder)
 
     # Can be used after looking at plot to analyze important milestones
@@ -106,9 +107,8 @@ def main():
 
 
 def train(hof, total_games, diagnostic_freq, resample_freq, hof_gate_freq, batch_size, epsilon, buffer_size, model):
-    winnersXO = [0 for _ in range(total_games//diagnostic_freq)]
-    winnersHOF = [0 for _ in range(total_games//diagnostic_freq)]
-    games = ["" for _ in range(total_games//diagnostic_freq)]
+    diagnostics = Diagnostics()
+    games = ["" for _ in range(total_games//diagnostic_freq * 2)]
 
     # Initialize hall of fame
     hof.store(model)
@@ -132,30 +132,26 @@ def train(hof, total_games, diagnostic_freq, resample_freq, hof_gate_freq, batch
 
             # Switch sides for next game
             side_hof *= -1
-            side_best *= -1
+            side_best = side_hof * -1
 
             # Gate the model for HOF
             if game % hof_gate_freq == 0:
-                hof.gate(model)
+                reward, improvement = diagnostics.get_recent_performance()
+                if reward > 0 and np.abs(improvement) < 10:
+                    hof.gate(model)
+                    diagnostics.add_gate_ind()
 
             if game % diagnostic_freq == 0:
                 print("Game: ", game)
 
-                # Resample hof so diagnostic is not biased towards last game played
-                temp_side_best = [-1, 1][random.random() > 0.5]
-                temp_side_hof = side_best * -1
-
-                temp_model_hof = hof.sample("uniform")
-                temp_agent_best = Agent(model, temp_side_best)
-                temp_agent_hof = Agent(temp_model_hof, temp_side_hof)
-
                 # Run a diagnostic (non-training, no exploration) game to collect data
-                diagnostic_winner, game_data = run_game(temp_agent_best, temp_agent_hof, mnk=mnk, verbose=verbose)
+                diagnostic_winner, game_data = run_diagnostic(model, hof, 1)
+                games[game // diagnostic_freq * 2] = game_data
+                diagnostics.update_diagnostics(diagnostic_winner, 1)
 
-                # Store data from diagnostic game for this batch
-                games[game//diagnostic_freq] = game_data
-                winnersXO[game//diagnostic_freq] = diagnostic_winner              # X or O
-                winnersHOF[game//diagnostic_freq] = diagnostic_winner*side_best   # Best or HOF
+                diagnostic_winner, game_data = run_diagnostic(model, hof, -1)
+                games[game // diagnostic_freq * 2 + 1] = game_data
+                diagnostics.update_diagnostics(diagnostic_winner, -1)
 
     except KeyboardInterrupt:
         print("\n=======================")
@@ -163,7 +159,19 @@ def train(hof, total_games, diagnostic_freq, resample_freq, hof_gate_freq, batch
         print("=======================")
 
     print("Training completed.")
-    return model, winnersXO, winnersHOF, games
+    return model, diagnostics, games
+
+
+def run_diagnostic(model, hof, side_model):
+    side_hof = side_model * -1
+
+    model_hof = hof.sample("uniform")
+    agent_model = Agent(model, side_model)
+    agent_hof = Agent(model_hof, side_hof)
+
+    # Run a diagnostic (non-training, no exploration) game to collect data
+    return run_game(agent_model, agent_hof, mnk=mnk, verbose=verbose)
+
 
 def clear_hof(folder):
     if os.path.isdir(folder):

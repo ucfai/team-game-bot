@@ -29,7 +29,7 @@ class Model:
             self.model = self.retrieve(location)
             return
 
-        opt = SGD(learning_rate=0.001)
+        opt = SGD(learning_rate=0.01)
 
         self.model = Sequential()
         self.model.add(Flatten(input_shape=(m, n, 2)))
@@ -93,27 +93,6 @@ class Model:
 
         return self.model(get_input_rep(board.get_board()))
 
-    def scheduler(self, epoch, lr):
-        """Returns an epsilon value as a function of the current epoch.
-        As a function of the epoch number, it returns a decreasing epsilon value
-        used in the Epsilon-Greedy Method.
-
-        Args:
-            epoch (int): Number of training epoch.
-            lr (???): ??? (Is this for the decay?)
-
-        Returns:
-            double: Epsilon value. Probability of choosing to explore.
-        """
-        if epoch < 5000:
-            return 0.02
-        elif epoch < 15000:
-            return 0.01
-        elif epoch < 25000:
-            return 0.002
-        else:
-            return 0.001
-
     def get_target(self, state, action, next_state):
         m, n, k = self.mnk
 
@@ -144,4 +123,12 @@ class Model:
         """
         target_output = self.get_target(state, action, next_state)
 
-        self.model.fit(get_input_rep(state), target_output, batch_size=1, verbose=0)
+        lr_scheduler = tf.keras.callbacks.LearningRateScheduler(scheduler)
+        self.model.fit(get_input_rep(state), target_output, batch_size=1, verbose=0, callbacks=[lr_scheduler])
+
+
+def scheduler(epoch, lr):
+    if lr > 0.0005:
+        return lr * tf.math.exp(-0.00005)
+    else:
+        return lr
