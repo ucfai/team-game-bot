@@ -1,5 +1,5 @@
 #app.py
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import numpy as np
 
@@ -10,20 +10,17 @@ app = Flask(__name__)
 CORS(app)
 
 @app.route('/', methods=['GET'])
-def respond():
-    # Return (3,3) matrix with random numbers [-1, 0, 1]
-    # representing the board state
-    matrix = np.random.randint(-1, 2, size=(3,3))
+def index():
+    return send_from_directory('../frontend/', 'index.html')
 
-    # Convert matrix to a python list
-    matrix = matrix.tolist()
-
-    # Return the matrix as a JSON object, with name "board"
-    return jsonify(board=matrix)
+@app.route('/<webpage>')
+def serve(webpage):
+    return send_from_directory('../frontend/', webpage)
     
-@app.route('/<variable_name>/')
-def respond_nxm(variable_name):
-    size = str(variable_name)
+@app.route('/board/<dimensions>/')
+def respond_nxm(dimensions):
+
+    size = str(dimensions)
 
     # Convert size "nxm" to a tuple
     size = tuple(map(int, size.split('x')))
@@ -37,7 +34,6 @@ def respond_nxm(variable_name):
 
     # Return the matrix as a JSON object, with name "board"
     return jsonify(board=matrix)
-    
     
 if __name__ == "__main__":
     app.run()

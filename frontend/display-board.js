@@ -1,5 +1,5 @@
-var n = 30
-var m = 30
+var n = 7
+var m = 7
 
 displayBoard(n, m);
 
