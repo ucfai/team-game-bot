@@ -5,7 +5,7 @@ displayBoard(n, m);
 
 async function displayBoard(n, m) {
 
-  var input_board_test = (await fetch(`https://team-game-bot.herokuapp.com/${n}x${m}/`).then(response => { return response.json() })).board
+  var input_board_test = (await fetch(`https://team-game-bot.herokuapp.com/board/${n}x${m}/`).then(response => { return response.json() })).board
 
   var n = input_board_test.length
   var m = input_board_test[0].length
