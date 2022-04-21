@@ -5,4 +5,4 @@ Currently we are working on a simple AI that learns how to play tic tac toe thro
 
 Web Server: https://team-game-bot.herokuapp.com/
 
-For local backend/frontend development: cd backend & flask run
+For local backend/frontend development: cd backend & python3 app.py

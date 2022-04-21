@@ -1,19 +1,27 @@
-const cells = document.querySelectorAll('.cell')
-var board = document.querySelector('.board')
-const winningMessage = document.querySelector('.winningMessage')
-const winningMessageText = document.querySelector('.winningMessageText')
-const newGameButton = document.querySelector('.newGameButton')
-let xIsNext
+var cells, board, winningMessage, winningMessageText, newGameButton, xIsNext
 
-newGame()
-
-newGameButton.addEventListener('click', newGame)
+// I wrote this terrible hacky code in this way because newGame() MUST trigger AFTER displayBoard()
+// has fully finished and all elements have been loaded onto the page, since it operates on those elements.
+// Adding a forced delay of 0.5s was just the easiest (but def not best) way to make it work
+window.onpageshow = (event) => {
+	setTimeout(() => {
+		newGame()
+		newGameButton.addEventListener('click', newGame)
+	}, 500);
+};
 
 function newGame() {
+	cells = document.querySelectorAll('.cell')
+	board = document.getElementById('board')
+	winningMessage = document.querySelector('.winningMessage')
+	winningMessageText = document.querySelector('.winningMessageText')
+	newGameButton = document.querySelector('.newGameButton')
 	xIsNext = true
+
 	board.classList.add('X')
 	board.classList.remove('O')
 	winningMessage.classList.remove('show')
+
 	cells.forEach(cell => {
 		cell.classList.remove('X')
 		cell.classList.remove('O')
@@ -21,28 +29,13 @@ function newGame() {
 	})
 }
 
-const lines = [
-	[0, 1, 2],
-	[3, 4, 5],
-	[6, 7, 8],
-	[0, 3, 6],
-	[1, 4, 7],
-	[2, 5, 8],
-	[0, 4, 8],
-	[2, 4, 6],
-]
-
 function handleClick(e) {
 	// place mark
 	const cell = e.target
 	const player = xIsNext ? 'X' : 'O'
 	cell.classList.add(player)
 	// check for win
-	if (lines.some(combination => {
-		return combination.every(index => {
-			return cells[index].classList.contains(player)
-		})
-	})) {
+	if (checkForWin(player)) {
 		winningMessageText.innerText = `${xIsNext ? 'X' : 'O'} Wins!`
 		winningMessage.classList.add('show')
 	}
@@ -65,4 +58,30 @@ function handleClick(e) {
 			board.classList.remove('X')
 		}
 	}
+}
+
+// TODO
+function checkForWin(player) {
+
+	return false;
+
+	/*
+	var m = 7, n = 7
+	var k_in_a_row = 3
+
+	for (var r = 0; r < m; r++)
+		for (var c = 0; c < n; c++)
+			if (winFromPos(r, c, k_in_a_row))
+				return true
+	*/
+}
+
+// TODO
+function winFromPos(r, c, k_in_a_row) {
+	/*
+	var m = 7, n = 7
+	var k_in_a_row = 3
+
+	cells[index].classList.contains(player)
+	*/
 }
