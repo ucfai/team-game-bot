@@ -7,6 +7,7 @@ window.onpageshow = (event) => {
     setTimeout(() => {
         console.log("Page has been shown");
         newGame();
+
         newGameButton.addEventListener("click", newGame);
     }, 500);
 };
@@ -31,7 +32,6 @@ function updateBoard(board) {
 }
 
 function newGame() {
-    socket.emit("new_game", { m: m, n: n, k: k });
     console.log("Page has been shown 2");
     cells = document.querySelectorAll(".cell");
     board = document.getElementById("board");
@@ -49,6 +49,9 @@ function newGame() {
         cell.classList.remove("O");
         cell.addEventListener("click", handleClick, { once: true });
     });
+
+    // Post to server signal that new game has been started
+    socket.emit("new_game", { m: m, n: n, k: k });
 }
 
 function getCoordinates(str) {
@@ -57,10 +60,15 @@ function getCoordinates(str) {
     return [parseInt(coordinates[0]), parseInt(coordinates[1])];
 }
 
-async function changeMNK(m, n, k) {
+async function changeMNK(new_m, new_n, new_k) {
     board = await getEmptyBoard(env, m, n);
     displayBoard(board);
     newGame();
+
+    // Update global variables
+    m = new_m;
+    n = new_n;
+    k = new_k;
 
     // Post to server signal that new n, m, k have been chosen
     socket.emit("new_game", { m: m, n: n, k: k });
@@ -106,34 +114,10 @@ function displayWinningMessage(who_won) {
 
 // Receives board from server and displays it
 socket.on("board_update", (board) => {
+    console.log(board);
     updateBoard(board);
 });
 
 socket.on("win", (who_won) => {
     displayWinningMessage(who_won);
 });
-
-// TODO
-function checkForWin(player) {
-    return false;
-
-    /*
-	var m = 7, n = 7
-	var k_in_a_row = 3
-
-	for (var r = 0; r < m; r++)
-		for (var c = 0; c < n; c++)
-			if (winFromPos(r, c, k_in_a_row))
-				return true
-	*/
-}
-
-// TODO
-function winFromPos(r, c, k_in_a_row) {
-    /*
-	var m = 7, n = 7
-	var k_in_a_row = 3
-
-	cells[index].classList.contains(player)
-	*/
-}

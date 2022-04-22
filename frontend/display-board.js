@@ -1,6 +1,7 @@
-env = "http://127.0.0.1:5000";
+env = "https://team-game-bot.herokuapp.com/";
 var m = 7;
 var n = 3;
+var k = 3;
 
 main();
 
