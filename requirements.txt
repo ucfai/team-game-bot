@@ -6,3 +6,6 @@ scipy
 seaborn
 tensorflow
 keras
+flask
+flask_cors
+flask_socketio
