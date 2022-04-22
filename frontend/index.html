@@ -1,23 +1,48 @@
 <!DOCTYPE html>
 <html>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="stylesheet" type="text/css" href="style.css" />
+        <script
+            src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"
+            integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA=="
+            crossorigin="anonymous"
+        ></script>
+        <script type="text/javascript" charset="utf-8">
+            var socket = io();
+            socket.on("connect", function () {
+                socket.emit("connection", { route: location });
+            });
+        </script>
+        <script type="text/javascript" src="display-board.js" defer></script>
+        <script type="text/javascript" src="script.js" defer></script>
+        <title>Tic-Tac-Toe</title>
+    </head>
 
-<head>
-	<meta charset='utf-8'>
-	<meta name='viewport' content='width=device-width, initial-scale=1'>
-	<link rel='stylesheet' type='text/css' href='style.css'>
-	<script type='text/javascript' src='display-board.js' defer></script>
-	<script type='text/javascript' src='script.js' defer></script>
-	<title>Tic-Tac-Toe</title>
-</head>
+    <body>
+        TODO: Win detection
+        <div class="New Game">
+            <div class="Size">m x n x k?</div>
+            <!-- User input for M x N x K Game -->
+            <div class="Size">
+                <input type="number" id="m" placeholder="m" min="1" value="7" />
+                x
+                <input type="number" id="n" placeholder="n" min="1" value="3" />
+                x
+                <input type="number" id="k" placeholder="k" min="1" value="3" />
+            </div>
+            <div class="Size">
+                <button id="start">Start</button>
+            </div>
+            <!-- <button class="newGameButton">New Game</button> -->
+        </div>
 
-<body>
-	TODO: Win detection
-	<div class='board X' id='board'></div>
+        <div class="board X" id="board"></div>
 
-	<div class='winningMessage'>
-		<div class='winningMessageText'></div>
-		<button class='newGameButton'>New Game</button>
-	</div>
-</body>
-
+        <div class="winningMessage">
+            <div class="winningMessageText"></div>
+            <button class="newGameButton">New Game</button>
+        </div>
+    </body>
 </html>
