@@ -1,5 +1,4 @@
 #app.py
-from pickle import GLOBAL
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import numpy as np
@@ -16,7 +15,7 @@ socketio = SocketIO(app)
 
 # ======================================================== #
 #                    Auxiliary Functions                   #
-# ======================================================== #
+# ======================================================== # 
 
 def unpack(dimensions):
     """Given a string of the form "nxm", returns a tuple (n, m).
@@ -50,7 +49,7 @@ def toClientMatrix(board):
 
 @app.route('/')
 def index():
-    return send_from_directory('../frontend/', 'index.html')
+    return send_from_directory('../frontend/', 'index.html') 
 
 @app.route('/<webpage>')
 def serve(webpage):
@@ -59,7 +58,7 @@ def serve(webpage):
 
 # ======================================================== #
 #                     Get Boards (APIs)                    #
-# ======================================================== #
+# ======================================================== # 
     
 @app.route('/board/random/<dimensions>/')
 def random_nxm(dimensions):
