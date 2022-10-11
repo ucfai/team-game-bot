@@ -2,6 +2,11 @@ from mnk import Board
 import datetime
 
 
+def save_model(model, model_name):
+    print("Saving trained model to models/{}".format(model_name))
+    model.save_to('models/{}'.format(model_name))
+
+
 def run_game(agent_train, agent_versing, mnk=(3, 3, 3), verbose=False):
     board = Board(*mnk, hist_length=-1)
     game = []
@@ -20,6 +25,7 @@ def run_game(agent_train, agent_versing, mnk=(3, 3, 3), verbose=False):
         print(board)
 
     return board.who_won(), game
+
 
 def arg_parser(argv):
     possible_arguments = ["-v", "-mcts"]

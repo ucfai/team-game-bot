@@ -90,7 +90,7 @@ class Board:
     def num_legal_moves(self):
         return len(self.legal_moves())
 
-    # Reshapes board into the form needed for the model
+    # Returns tuple of board and player
     def get_board(self):
         return np.copy(self.board), self.player
 
