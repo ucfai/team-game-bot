@@ -19,7 +19,8 @@ def run_game(agent_train, agent_versing, mnk=(3, 3, 3), verbose=False):
             board.move(*agent_train.action(board))
 
         # Store game for later analysis
-        game.append(board.__str__())
+        if verbose:
+            game.append(board.__str__())
 
     if verbose:
         print(board)

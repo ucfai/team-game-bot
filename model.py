@@ -5,14 +5,14 @@ import tensorflow as tf
 import numpy as np
 from keras.models import Sequential
 from keras.layers import Dense, Conv2D, Flatten, Dropout, MaxPooling2D
-from tensorflow.keras.optimizers import SGD
+from tensorflow.keras.optimizers import SGD, Adam
 from state_representation import get_input_rep
 import output_representation as output_rep
 from mnk import Board
 
 
 class Model:
-    def __init__(self, mnk, lr=0.001, location=None):
+    def __init__(self, mnk, lr=0.001, location=None, model=None):
         """Tic-Tac-Toe Game Evaluator Model.
         Provides a Convolutional Neural Network that can be trained to evaluate different
         board states, determining which player has the advantage at any given state. 
@@ -29,13 +29,19 @@ class Model:
             self.model = self.retrieve(location)
             return
 
-        opt = SGD(learning_rate=lr)
+        if model is not None:
+            self.model = model
+            return
+
+        opt = Adam(learning_rate=lr)
 
         self.model = Sequential()
-        self.model.add(Flatten(input_shape=(m, n, 2)))
-        self.model.add(Dense(24, kernel_initializer='normal', activation='relu'))
-        self.model.add(Dense(24, kernel_initializer='normal', activation='relu'))
-        self.model.add(Dense(mnk[0] * mnk[1], kernel_initializer='normal', activation='tanh'))
+        self.model.add(Conv2D(filters=32, kernel_size=3, input_shape=(m, n, 2)))
+        self.model.add(Flatten())
+        self.model.add(Dense(54, kernel_initializer='normal', activation='relu'))
+        self.model.add(Dense(54, kernel_initializer='normal', activation='relu'))
+        self.model.add(Dense(54, kernel_initializer='normal', activation='relu'))
+        self.model.add(Dense(mnk[0] * mnk[1], kernel_initializer='normal'))
 
         self.model.compile(loss='mean_squared_error', optimizer=opt)
 
@@ -90,45 +96,9 @@ class Model:
 
         return self.model(get_input_rep(board.get_board()))
 
-    def get_target(self, state, action, next_state):
-        m, n, k = self.mnk
-
-        # TODO: Is this actually necessary? Might be wasteful
-        start_board = Board(*self.mnk, state=state)
-        next_board = Board(*self.mnk, state=next_state)
-
-        prev_output = self.action_values(start_board)
-
-        # OPT 1: If this line is used, illegal actions will be ignored.
-        target_output = np.copy(prev_output)
-
-        # OPT 2: If this is used, illegal actions will be trained to have action value -1.
-        # target_output = np.full(shape=prev_output.shape, fill_value=-1, dtype='float32')
-        #
-        # for move in start_board.legal_moves():
-        #    index = move[0] * m + move[1]
-        #    target_output[0][index] = prev_output[0][index]
-
-        target_output[0][action[0] * n + action[1]] = self.state_value(next_board, player=state[1])
-        return target_output
-
-    # Performs training on a single sample
-    def td_update(self, state, action, next_state):
-        """Performs a temporal difference update of the model.
-
-        Args:
-            state: Board representing the previous state of the game.
-            action: Move played after previous state.
-            next_state: Next state of the game after action was taken.
-        """
-        target_output = self.get_target(state, action, next_state)
-
-        lr_scheduler = tf.keras.callbacks.LearningRateScheduler(scheduler)
-        self.model.fit(get_input_rep(state), target_output, batch_size=1, verbose=0, callbacks=[lr_scheduler])
-
 
 def scheduler(epoch, lr):
-    if lr > 0.0005:
-        return lr * tf.math.exp(-0.00005)
+    if lr > 0.0001:
+        return lr * tf.math.exp(-0.0009)
     else:
         return lr

@@ -6,12 +6,14 @@ class ReplayBuffer:
         self.capacity = capacity
         self.batch_size = batch_size
         self.buffer = []
+        self.index = 0
 
     def store(self, experience):
-        self.buffer.append(experience)
-
-        if len(self.buffer) > self.capacity:
-            del self.buffer[0]
+        if len(self.buffer) >= self.capacity:
+            self.buffer[self.index] = experience
+            self.index = (self.index + 1) % self.capacity
+        else:
+            self.buffer.append(experience)
 
     def sample(self):
         if len(self.buffer) < self.batch_size:

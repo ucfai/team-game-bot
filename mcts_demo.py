@@ -164,8 +164,8 @@ def rollout(board):
 class Node:
     def __init__(self, last_move = None):
         self.last_move = last_move
-        self.q = 0
-        self.n = 0
+        self.q = 0  # Average of rewards from rollouts
+        self.n = 0  # Number of times node has been visited
         self.children = []
         self.isLeaf = True
 
