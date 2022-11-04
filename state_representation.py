@@ -32,4 +32,4 @@ def get_input_rep(board, form="multiplanar-turnflipped"):
                     board_planes[i][j][0] = 1
                 elif board[i][j] == -1 * player:
                     board_planes[i][j][1] = 1
-        return np.copy(board_planes.reshape(1, m, n, 2))
+        return np.copy(np.expand_dims(board_planes, axis=0))

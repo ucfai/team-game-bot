@@ -1,5 +1,4 @@
 import mnk
-import keras.models
 import tensorflow as tf
 import random
 
