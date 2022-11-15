@@ -5,6 +5,7 @@ import tensorflow as tf
 import numpy as np
 from keras.models import Sequential
 from keras.layers import Dense, Conv2D, Flatten, Dropout, MaxPooling2D
+from keras.regularizers import l2
 from tensorflow.keras.optimizers import SGD, Adam
 from state_representation import get_input_rep
 import output_representation as output_rep
@@ -33,17 +34,16 @@ class Model:
             self.model = model
             return
 
-        opt = Adam(learning_rate=lr)
+        self.opt = Adam(learning_rate=lr)
+        regularization = 0.0001
 
         self.model = Sequential()
-        self.model.add(Conv2D(filters=32, kernel_size=3, input_shape=(m, n, 2)))
+        self.model.add(Conv2D(filters=32, kernel_size=3, input_shape=(m, n, 2), kernel_regularizer=l2(regularization)))
         self.model.add(Flatten())
-        self.model.add(Dense(54, kernel_initializer='normal', activation='relu'))
-        self.model.add(Dense(54, kernel_initializer='normal', activation='relu'))
-        self.model.add(Dense(54, kernel_initializer='normal', activation='relu'))
-        self.model.add(Dense(mnk[0] * mnk[1], kernel_initializer='normal'))
+        self.model.add(Dense(128, kernel_initializer='normal', activation='relu', kernel_regularizer=l2(regularization)))
+        self.model.add(Dense(mnk[0] * mnk[1], kernel_initializer='normal', kernel_regularizer=l2(regularization)))
 
-        self.model.compile(loss='mean_squared_error', optimizer=opt)
+        self.model.compile(loss='mean_squared_error', optimizer=self.opt)
 
     @staticmethod
     def retrieve(location):

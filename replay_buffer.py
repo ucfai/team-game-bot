@@ -8,6 +8,10 @@ class ReplayBuffer:
         self.buffer = []
         self.index = 0
 
+    def clear(self):
+        self.buffer = []
+        self.index = 0
+
     def store(self, experience):
         if len(self.buffer) >= self.capacity:
             self.buffer[self.index] = experience

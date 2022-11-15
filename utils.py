@@ -14,16 +14,13 @@ def run_game(agent_train, agent_versing, mnk=(3, 3, 3), verbose=False):
     while board.game_ongoing():
         # Select a move
         if board.player == agent_versing.player:
-            board.move(*agent_versing.action(board))
+            board.move(*agent_versing.greedy_action(board))
         else:
-            board.move(*agent_train.action(board))
+            board.move(*agent_train.greedy_action(board))
 
         # Store game for later analysis
         if verbose:
             game.append(board.__str__())
-
-    if verbose:
-        print(board)
 
     return board.who_won(), game
 

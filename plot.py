@@ -8,15 +8,14 @@ import os
 
 
 class Diagnostics:
-    def __init__(self, run_length=100):
+    def __init__(self, run_length=50):
         self.run_length = run_length
         self.xo_outcomes = [[], [], []]
         self.model_outcomes = [[], [], []]
         self.rewards = []
-        self.reward_totals = []
+        self.reward_avg = []
         self.reward_deltas = []
         self.gating_indices = []
-        self.index = 0
 
     def update_xo(self, x_outcome, o_outcome):
         self.xo_outcomes[0].append(x_outcome)
@@ -29,31 +28,20 @@ class Diagnostics:
         self.model_outcomes[2].append(1 - train_outcome - hof_outcome)
 
     def update_reward(self, reward):
+        n = min(self.run_length, len(self.rewards))
+
         self.rewards.append(reward)
-        self.reward_totals.append(reward)
-        self.reward_deltas.append(reward)
-
-        if self.index > 0:
-            self.reward_totals[-1] += self.reward_totals[-2]
-            self.reward_deltas[-1] += self.reward_deltas[-2]
-
-        if self.index >= self.run_length:
-            self.reward_totals[-1] -= self.rewards[self.index - self.run_length]
-            self.reward_deltas[-1] -= 2 * self.rewards[self.index - self.run_length]
-
-        if self.index >= 2 * self.run_length:
-            self.reward_deltas[-1] += self.rewards[self.index - 2 * self.run_length]
-
-        self.index += 1
+        self.reward_avg.append(np.mean(self.rewards[-n:]))
+        self.reward_deltas.append(np.mean(self.rewards[-(n//2):]) - np.mean(self.rewards[-n:-(n//2)]))
 
     def add_gate_ind(self):
-        self.gating_indices.append(self.index)
+        self.gating_indices.append(len(self.rewards) - 1)
 
     def get_recent_performance(self):
-        if self.index == 0:
+        if len(self.rewards) == 0:
             return 0, 0
 
-        return self.reward_totals[-1] / self.run_length, self.reward_deltas[-1] / self.run_length
+        return self.reward_avg[-1], self.reward_deltas[-1]
 
 
 def plot_wins(outcomes, model_name, players):
@@ -136,17 +124,17 @@ def save_plots(mnk, hof, model_name, diagnostics):
 
     # Graph and save each plot
 
-    plt.plot(range(diagnostics.index), np.array(diagnostics.reward_totals) / diagnostics.run_length)
+    plt.plot(range(len(diagnostics.rewards)), np.array(diagnostics.reward_avg))
     add_gating_markers(diagnostics.gating_indices)
-    plt.title("{}: Reward for {} diagnostic games".format(model_name, diagnostics.index+1))
+    plt.title("{}: Reward for {} diagnostic games".format(model_name, len(diagnostics.rewards)+1))
     plt.xlabel("Game #")
     plt.ylabel("Cumulative reward over previous {} games".format(diagnostics.run_length))
     plt.savefig("{}/Reward.png".format(plots_dir))
     plt.clf()
 
-    plt.plot(range(diagnostics.index), np.array(diagnostics.reward_deltas) / diagnostics.run_length)
+    plt.plot(range(len(diagnostics.rewards)), np.array(diagnostics.reward_deltas))
     add_gating_markers(diagnostics.gating_indices)
-    plt.title("{}: Cumulative reward derivative for {} diagnostic games".format(model_name, diagnostics.index+1))
+    plt.title("{}: Cumulative reward derivative for {} diagnostic games".format(model_name, len(diagnostics.rewards)+1))
     plt.xlabel("Game #")
     plt.ylabel("Difference in cumulative reward for previous two {} length runs".format(diagnostics.run_length))
     plt.savefig("{}/Improvement.png".format(plots_dir))
@@ -157,11 +145,11 @@ def save_plots(mnk, hof, model_name, diagnostics):
     plt.clf()
 
     plt.figure()
-    plt.plot(range(diagnostics.index), get_moving_avg(diagnostics.xo_outcomes[0], run_length=diagnostics.run_length), label="X")
-    plt.plot(range(diagnostics.index), get_moving_avg(diagnostics.xo_outcomes[1], run_length=diagnostics.run_length), label="O")
-    plt.plot(range(diagnostics.index), get_moving_avg(diagnostics.xo_outcomes[2], run_length=diagnostics.run_length), label="Tie")
+    plt.plot(range(len(diagnostics.rewards)), get_moving_avg(diagnostics.xo_outcomes[0], run_length=diagnostics.run_length), label="X")
+    plt.plot(range(len(diagnostics.rewards)), get_moving_avg(diagnostics.xo_outcomes[1], run_length=diagnostics.run_length), label="O")
+    plt.plot(range(len(diagnostics.rewards)), get_moving_avg(diagnostics.xo_outcomes[2], run_length=diagnostics.run_length), label="Tie")
     plt.legend()
-    plt.title("{}: XO wins for {} diagnostic games".format(model_name, diagnostics.index + 1))
+    plt.title("{}: XO wins for {} diagnostic games".format(model_name, len(diagnostics.rewards) + 1))
     plt.xlabel("Game #")
     plt.ylabel("Proportion of wins averaged over previous {} games".format(diagnostics.run_length))
     add_gating_markers(diagnostics.gating_indices)
@@ -169,11 +157,11 @@ def save_plots(mnk, hof, model_name, diagnostics):
     plt.clf()
 
     plt.figure()
-    plt.plot(range(diagnostics.index), get_moving_avg(diagnostics.model_outcomes[0], run_length=diagnostics.run_length), label="Best")
-    plt.plot(range(diagnostics.index), get_moving_avg(diagnostics.model_outcomes[1], run_length=diagnostics.run_length), label="HOF")
-    plt.plot(range(diagnostics.index), get_moving_avg(diagnostics.model_outcomes[2], run_length=diagnostics.run_length), label="Tie")
+    plt.plot(range(len(diagnostics.rewards)), get_moving_avg(diagnostics.model_outcomes[0], run_length=diagnostics.run_length), label="Best")
+    plt.plot(range(len(diagnostics.rewards)), get_moving_avg(diagnostics.model_outcomes[1], run_length=diagnostics.run_length), label="HOF")
+    plt.plot(range(len(diagnostics.rewards)), get_moving_avg(diagnostics.model_outcomes[2], run_length=diagnostics.run_length), label="Tie")
     plt.legend()
-    plt.title("{}: Model v Best wins for {} diagnostic games".format(model_name, diagnostics.index + 1))
+    plt.title("{}: Model v Best wins for {} diagnostic games".format(model_name, len(diagnostics.rewards) + 1))
     plt.xlabel("Game #")
     plt.ylabel("Proportion of wins averaged over previous {} games".format(diagnostics.run_length))
     add_gating_markers(diagnostics.gating_indices)

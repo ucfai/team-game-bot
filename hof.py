@@ -27,7 +27,7 @@ class HOF:
         self.basel += 1 / self.pop_size**2
 
     # Samples from the hall of fame with the provided method
-    def sample(self, method='limit-uniform', index=None):
+    def sample(self, method='uniform', index=None):
         if method == 'limit-uniform':  # Performs poorly. Do not use.
             threshold = random.random()*self.basel
 
@@ -49,4 +49,4 @@ class HOF:
             self.sample_history.append(ind)
             name = self.hof[ind]
 
-        return Model(self.mnk, "{}/{}".format(self.folder, name))
+        return Model(self.mnk, location="{}/{}".format(self.folder, name))

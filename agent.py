@@ -25,17 +25,26 @@ class Agent:
         legal_moves = board.legal_moves()
         return legal_moves[random.randint(0, len(legal_moves) - 1)]
 
-    def action(self, board, epsilon=0):
+    def softmax_action(self, board, beta):
+        action_value_vector = self.model.action_values(board)
+        legal_action_values = output_rep.get_legal_vals(board, action_value_vector)
+
+        legal_val_tensor = tf.constant([list(legal_action_values.values())])
+        sampled_ind = tf.random.categorical(tf.math.log(tf.nn.softmax(beta * legal_val_tensor)), 1)[0, 0]
+
+        return list(legal_action_values.keys())[sampled_ind]
+
+    def action(self, board, epsilon=0, beta=1):
         legal_moves = board.legal_moves()
         assert len(legal_moves) > 0, "No legal moves can be played."
 
-        greedy_move = self.greedy_action(board)
+        best_move = self.softmax_action(board, beta)
 
         # Exploration
         if random.random() < epsilon:
             move = self.random_action(board)
         else:
-            move = greedy_move
+            move = best_move
 
         return move
 
