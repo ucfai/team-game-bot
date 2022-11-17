@@ -2,6 +2,7 @@ import mnk
 import tensorflow as tf
 import random
 
+from state_representation import get_input_rep
 import output_representation as output_rep
 
 
@@ -15,8 +16,8 @@ class Agent:
         legal_moves = board.legal_moves()
         assert len(legal_moves) > 0, "No legal moves can be played."
 
-        action_value_vector = self.model.action_values(board)
-        legal_action_values = output_rep.get_legal_vals(board, action_value_vector)
+        action_value_vector = self.model.action_values(get_input_rep(board.get_board()))
+        legal_action_values = output_rep.get_legal_vals_obj(board, action_value_vector)
         best_move = max(legal_action_values, key=legal_action_values.get)
 
         return best_move
@@ -26,8 +27,8 @@ class Agent:
         return legal_moves[random.randint(0, len(legal_moves) - 1)]
 
     def softmax_action(self, board, beta):
-        action_value_vector = self.model.action_values(board)
-        legal_action_values = output_rep.get_legal_vals(board, action_value_vector)
+        action_value_vector = self.model.action_values(get_input_rep(board.get_board()))
+        legal_action_values = output_rep.get_legal_vals_obj(board, action_value_vector)
 
         legal_val_tensor = tf.constant([list(legal_action_values.values())])
         sampled_ind = tf.random.categorical(tf.math.log(tf.nn.softmax(beta * legal_val_tensor)), 1)[0, 0]

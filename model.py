@@ -65,7 +65,7 @@ class Model:
         """
         self.model.save(location)
 
-    def state_value(self, board, player):
+    def state_value(self, states, terminal=None):
         """Evaluates the state of the board and returns the advantage of the given player.
         1 means the supplied player is at advantage, -1 disadvantage.
 
@@ -77,14 +77,21 @@ class Model:
             tf.Tensor(shape=(1,1)): Value indicating the advantage of the current player.
         """
 
-        if board.who_won() != 2:
-            return tf.constant(player * board.who_won(), dtype="float32", shape=(1, 1))
-        else:
-            action_value_vector = self.action_values(board)
-            legal_action_values = output_rep.get_legal_vals(board, action_value_vector)
-            return max(legal_action_values.values())
+        action_vals = self.model(states)
+        max_vals = np.zeros(action_vals.shape[0])
+        max_inds = []
 
-    def action_values(self, board):
+        for i in range(action_vals.shape[0]):
+            if terminal is not None and terminal[i]:
+                max_inds.append(-1)
+            else:
+                val, ind = output_rep.legal_argmax(states[i], action_vals[i])
+                max_vals[i] = val
+                max_inds.append(ind)
+        
+        return max_vals, max_inds
+
+    def action_values(self, states):
         """Returns the vector of action values for all actions in the current board state. This includes
         illegal actions that cannot be taken.
 
@@ -94,7 +101,7 @@ class Model:
             tf.Tensor(shape=(m * n)): Vector where entry i indicates the value of taking move i from the current state.
         """
 
-        return self.model(get_input_rep(board.get_board()))
+        return self.model(states)
 
 
 def scheduler(epoch, lr):

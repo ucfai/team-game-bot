@@ -24,7 +24,7 @@ verbose, model_name = False, "new_model"
 mnk = (3, 3, 3)
 
 
-def get_corrected_action_values(model, lagging_model, state, action, next_state, reward, terminal):
+def get_corrected_action_values(model, lagging_model, states, actions, td_errors, weights):
     """Returns an action value vector with a 1 step TD update as a target for training
 
     Args:
@@ -36,62 +36,66 @@ def get_corrected_action_values(model, lagging_model, state, action, next_state,
 
     m, n, k = model.mnk
 
-    # TODO: Is this actually necessary (converting state to a Board object)? Might be wasteful
-    start_board = Board(*model.mnk, state=state)
-    next_board = Board(*model.mnk, state=next_state)
+    prev_outputs = model.action_values(states)
 
-    prev_output = model.action_values(start_board)
+    # Illegal actions will be ignored. This could be changed to assign -1 to illegal actions
+    # but will likely hinder training.
+    target_outputs = np.copy(prev_outputs)
 
-    # OPT 1: If this line is used, illegal actions will be ignored.
-    target_output = np.copy(prev_output)
+    for i in range(target_outputs.shape[0]):
+        target_outputs[i][actions[i][0] * n + actions[i][1]] += weights[i] * td_errors[i]
 
-    # OPT 2: If this is used, illegal actions will be trained to have action value -1.
-    # ________________________________________________________________________________
-    # target_output = np.full(shape=prev_output.shape, fill_value=-1, dtype='float32')
-    #
-    # for move in start_board.legal_moves():
-    #    index = move[0] * m + move[1]
-    #    target_output[0][index] = prev_output[0][index]
-
-    # If next board is terminal, evaluate the real value of the state. Otherwise, use a
-    # Double Q-learning update (argmax using the slow model, obtain the value of the
-    # resulting action using the current model. This prevents over-estimation bias)
-    if terminal:
-        td_target = tf.constant(reward, dtype="float32", shape=(1, 1))
-    else:
-        action_vals = output_rep.get_legal_vals(next_board, model.action_values(next_board))
-        argmax_move = max(action_vals, key=action_vals.get)
-        td_target = lagging_model.action_values(next_board)[0][argmax_move[0] * next_board.n + argmax_move[1]]
-
-    target_output[0][action[0] * n + action[1]] = td_target
-    return target_output
+    return target_outputs
 
 
-def train_on_replays(model, lagging_model, batch):
+def train_on_replays(model, lagging_model, replay_buffer, alpha, beta, min_priority):
     """Trains the model with 1 step TD updates on a batch of samples.
 
     Args:
         model: Model object being trained
         batch: Batch of (state, action, next_state) tuples being trained on
     """
-    states = []
-    target_outputs = []
+
+    batch_size = replay_buffer.batch_size
+    batch, importance_sampling = replay_buffer.sample_batch()
+
+    states_arr = [None for _ in range(batch_size)]
+    next_states_arr = [None for _ in range(batch_size)] 
+    actions = [None for _ in range(batch_size)]
+    rewards = np.zeros(batch_size, dtype="float32")
+    terminal = [None for _ in range(batch_size)]
 
     # Experiences are tuples (state, action, state')
-    for experience in batch:
-        target_outputs.append(get_corrected_action_values(model, lagging_model, *experience))
-        states.append(get_input_rep(experience[0])[0])
+    for i, experience in enumerate(batch):
+        states_arr[i], actions[i], next_states_arr[i], rewards[i], terminal[i] = experience
 
-    states = np.asarray(states)
-    target_outputs = np.asarray(target_outputs)
+    states = tf.stack(states_arr)
+    next_states = tf.stack(next_states_arr)
+
+    bootstrap_vals = np.zeros(batch_size, dtype="float32")
+    state_vals, _ = model.state_value(states)
+    next_state_action_vals = lagging_model.action_values(next_states)
+    _, argmax_inds = model.state_value(next_states, terminal)
+
+    for i in range(batch_size):
+        bootstrap_vals[i] = 0 if argmax_inds[i] == -1 else next_state_action_vals[i][argmax_inds[i]]
+
+    td_errors = bootstrap_vals + rewards - state_vals
+    weights = tf.math.pow(tf.convert_to_tensor(importance_sampling), beta)
+
+    priorities = tf.math.abs(td_errors) + tf.constant(min_priority, dtype=tf.float64, shape=(batch_size))
+    priorities = tf.math.pow(priorities, alpha)
+
+    replay_buffer.update_batch(priorities)
+
+    target_outputs = get_corrected_action_values(model, lagging_model, states, actions, td_errors, weights)
 
     # Theres a parameter for sample weights. Use if we do importance sampling
     lr_scheduler = tf.keras.callbacks.LearningRateScheduler(scheduler)
 
     model.model.fit(states, target_outputs, epochs=1, batch_size=len(states), steps_per_epoch=1, callbacks=[lr_scheduler], verbose=False)
 
-
-def run_training_game(transitions, agent_train, agent_versing, lagging_model, replay_buffer, n_steps=1, model_update_freq=4, lagging_freq=100, start_at=5000, epsilon=0, beta=1, mnk=(3, 3, 3), verbose=False):
+def run_training_game(transitions, agent_train, agent_versing, lagging_model, replay_buffer, alpha, beta, min_priority, n_steps=1, model_update_freq=4, lagging_freq=100, start_at=5000, epsilon=0, policy_beta=1, mnk=(3, 3, 3), verbose=False):
     """Runs a training game with the provided agents.
 
     Args:
@@ -119,11 +123,12 @@ def run_training_game(transitions, agent_train, agent_versing, lagging_model, re
 
             if len(state_queue) >= n_steps:
                 # Adds last action to replay buffer
-                replay_buffer.store((*state_queue[0], board.get_board(), 0, False))
+                state, action = state_queue[0]
+                replay_buffer.store((get_input_rep(state)[0], action, get_input_rep(board.get_board())[0], 0, False))
 
             if transitions % model_update_freq == 0 and transitions > start_at:
                 # Trains on a replay batch
-                train_on_replays(agent_train.model, lagging_model, replay_buffer.sample())
+                train_on_replays(agent_train.model, lagging_model, replay_buffer, alpha, beta, min_priority)
             if transitions % lagging_freq == 0:
                 # Updates the lagging model to the current model
                 lagging_model.model = tf.keras.models.clone_model(agent_train.model.model)
@@ -143,13 +148,13 @@ def run_training_game(transitions, agent_train, agent_versing, lagging_model, re
     # Back up the terminal state value to the last actions chosen by training agent
     while len(state_queue) > 0:
         reward = agent_train.player * winner
-
-        replay_buffer.store((*state_queue.pop(0), board.get_board(), reward, True))
+        state, action = state_queue.pop(0) 
+        replay_buffer.store((get_input_rep(state)[0], action, get_input_rep(board.get_board())[0], reward, True))
 
     return winner, game, transitions
 
 
-def train(hof, total_games, diagnostic_freq, run_length, resample_freq, hof_gate_freq, hof_wait_period, batch_size, epsilon, beta, buffer_size, n_steps, update_freq, lagging_freq, start_transition, model, lr):
+def train(hof, total_games, diagnostic_freq, run_length, resample_freq, hof_gate_freq, hof_wait_period, batch_size, epsilon, policy_beta, buffer_size, alpha, beta, min_priority, n_steps, update_freq, lagging_freq, start_transition, model, lr):
     diagnostics = Diagnostics(run_length=run_length)
     games = ["" for _ in range(total_games // diagnostic_freq * 2)]
 
@@ -162,7 +167,7 @@ def train(hof, total_games, diagnostic_freq, run_length, resample_freq, hof_gate
     # Initialize lagging model
     lagging_model = Model(mnk, model=tf.keras.models.clone_model(model.model))
     transitions = 0
-    games_since_hof = 0
+    games_since_hof = hof_wait_period
 
     try:
         for game in range(total_games):
@@ -179,7 +184,7 @@ def train(hof, total_games, diagnostic_freq, run_length, resample_freq, hof_gate
             agent_hof = Agent(model_hof, side_hof)
 
             # Play game and train on its outcome
-            _, _, transitions = run_training_game(transitions, agent_best, agent_hof, lagging_model, replay_buffer, n_steps, update_freq, lagging_freq, start_transition, epsilon, beta, mnk)
+            _, _, transitions = run_training_game(transitions, agent_best, agent_hof, lagging_model, replay_buffer, alpha, beta, min_priority, n_steps, update_freq, lagging_freq, start_transition, epsilon, policy_beta, mnk)
 
             # Switch sides for next game
             side_hof *= -1
@@ -190,7 +195,7 @@ def train(hof, total_games, diagnostic_freq, run_length, resample_freq, hof_gate
                 reward, improvement = diagnostics.get_recent_performance()
 
                 # Only add if reward is positive and improvement has plateaued
-                if (reward > 0 and np.abs(improvement) < 0.05) or reward == 1:
+                if (reward > 0 and np.abs(improvement) == 0) or reward == 1:
                     print("\nAdding model to HOF...")
                     hof.store(model)
                     # Adds red line for when new models are added in plots
@@ -277,31 +282,35 @@ def clear_hof(folder):
 
 def main():
     # Hyperparameter List
-    diagnostic_freq = 50  # How often to run diagnostic games (in number of games)
+    diagnostic_freq = 25  # How often to run diagnostic games (in number of games)
     run_length = 50 # Run length for diagnostic smoothing (in diagnostic games)
 
     resample_freq = 100  # How often to choose a new HOF opponent (in games)
     hof_gate_freq = 1000  # How often to gate a new model into the HOF (in games)
-    hof_wait_period = run_length * diagnostic_freq  # How long to wait after adding to HOF before adding again
+    hof_wait_period = 8000 # How long to wait after adding to HOF before adding again
 
     total_games = 100000  # Total num of training games
     batch_size = 32  # Batch size for training
     lr = 0.001  # Learning rate for SGD
 
-    update_freq = 2  # How often to train the model on a replay batch (in moves)
-    buffer_size = 10000  # Num of moves to store in replay buffer
+    update_freq = 8  # How often to train the model on a replay batch (in moves)
+    buffer_size = 50000  # Num of moves to store in replay buffer
+    alpha = 0.7
+    beta = 0.5
+    min_priority = 0.01
+
     n_steps = 1  # Num of steps used for temporal difference training targets
     lagging_freq = 500  # How often to update the lagging model (in moves)
     start_transition = 10000
 
     epsilon = 0.1  # Chance of picking a random move
-    beta = 1.0  # The lower this is, the more likely a "worse" move is chosen (don't set < 0)
+    policy_beta = 1.5  # The lower this is, the more likely a "worse" move is chosen (don't set < 0)
 
     hof_folder = "menagerie"    # Folder to store the hall-of-fame models
     hof = HOF(mnk, folder=hof_folder)
 
     print("\nTraining model: {}\n".format(model_name))
-    model, diagnostics, games = train(hof, total_games, diagnostic_freq, run_length, resample_freq, hof_gate_freq, hof_wait_period, batch_size, epsilon, beta, buffer_size, n_steps, update_freq, lagging_freq, start_transition, Model(mnk, lr=lr), lr=lr)
+    model, diagnostics, games = train(hof, total_games, diagnostic_freq, run_length, resample_freq, hof_gate_freq, hof_wait_period, batch_size, epsilon, policy_beta, buffer_size, alpha, beta, min_priority, n_steps, update_freq, lagging_freq, start_transition, Model(mnk, lr=lr), lr=lr)
 
     save_model(model, model_name)
     save_plots(mnk, hof, model_name, diagnostics)
