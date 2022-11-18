@@ -1,3 +1,4 @@
+import numpy as np
 import random
 import math
 
@@ -73,20 +74,23 @@ class ReplayBuffer:
         self.buffer.add(experience, priority)
 
     def sample_batch(self):
-        priorities = [random.uniform(0, self.buffer.get_total()) for _ in range(self.batch_size)]
-        experiences = [None for _ in range(self.batch_size)]
-        indices = [-1 for _ in range(self.batch_size)]
-        imp_sampling = [-1 for _ in range(self.batch_size)]
+        p_total = self.buffer.get_total()
+        segment = p_total / self.batch_size
 
+        experiences = []
+        indices = np.zeros(self.batch_size, dtype="int32")
+        imp_sampling = np.zeros(self.batch_size)
 
         for i in range(self.batch_size):
-            experiences[i], indices[i], imp_sampling[i] = self.buffer.sample_priority(priorities[i])
-
+            priority = random.uniform(segment * i, segment * (i+1)) 
+            experience, indices[i], imp_sampling[i] = self.buffer.sample_priority(priority)
+            experiences.append(experience)
+            
         self.last_batch = indices
         return experiences, imp_sampling
 
     def update_batch(self, priorities):
-        assert self.last_batch != None, "No batches have been sampled from this buffer."
+        assert self.last_batch is not None, "No batches have been sampled from this buffer."
 
         for ind, priority in zip(self.last_batch, priorities):
             self.buffer.update(ind, priority)
