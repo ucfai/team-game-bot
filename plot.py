@@ -31,8 +31,8 @@ class Diagnostics:
         n = min(self.run_length, len(self.rewards))
 
         self.rewards.append(reward)
-        self.reward_avg.append(np.mean(self.rewards[-n:]))
-        self.reward_deltas.append(np.mean(self.rewards[-(n//2):]) - np.mean(self.rewards[-n:-(n//2)]))
+        self.reward_avg.append(np.mean(self.rewards[-n:]) if n > 0 else 0)
+        self.reward_deltas.append(np.mean(self.rewards[-(n//2):]) - np.mean(self.rewards[-n:-(n//2)]) if n > 1 else 0)
 
     def add_gate_ind(self):
         self.gating_indices.append(len(self.rewards) - 1)

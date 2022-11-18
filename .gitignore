@@ -4,3 +4,5 @@ menagerie/
 models/
 plots/
 .DS_Store
+profiling.txt
+venv/

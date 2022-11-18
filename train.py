@@ -82,7 +82,7 @@ def train_on_replays(model, lagging_model, replay_buffer, alpha, beta, min_prior
     weights = tf.math.pow(importance_sampling, beta)
     weights /= tf.math.reduce_max(weights)
 
-    priorities = tf.math.abs(td_errors) + tf.constant(min_priority, dtype=tf.float64, shape=(batch_size))
+    priorities = tf.math.abs(td_errors) + tf.constant(min_priority, dtype=tf.float32, shape=(batch_size))
     priorities = tf.math.pow(priorities, alpha)
     replay_buffer.update_batch(priorities)
 

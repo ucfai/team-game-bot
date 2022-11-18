@@ -78,17 +78,14 @@ class Model:
         """
 
         action_vals = self.model(states)
-        max_vals = np.zeros(action_vals.shape[0])
-        max_inds = []
+        k, m, n, _ = states.shape
 
-        for i in range(action_vals.shape[0]):
-            if terminal is not None and terminal[i]:
-                max_inds.append(-1)
-            else:
-                val, ind = output_rep.legal_argmax(states[i], action_vals[i])
-                max_vals[i] = val
-                max_inds.append(ind)
-        
+        illegal_actions = (np.sum(states, axis=3) != 0).reshape(k, m * n)
+        action_vals += np.where(illegal_actions, np.full(shape=(k, m * n), fill_value=np.NINF, dtype="float32"), illegal_actions == 0)
+
+        max_vals = tf.math.reduce_max(action_vals, axis=1)
+        max_inds = np.argmax(action_vals, axis=1)
+
         return max_vals, max_inds
 
     def action_values(self, states):
