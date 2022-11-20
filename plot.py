@@ -8,14 +8,19 @@ import os
 
 
 class Diagnostics:
-    def __init__(self, run_length=50):
+    def __init__(self, run_length=50, training_run_length=500):
         self.run_length = run_length
+        self.training_run_length = training_run_length
         self.xo_outcomes = [[], [], []]
         self.model_outcomes = [[], [], []]
         self.rewards = []
         self.reward_avg = []
         self.reward_deltas = []
         self.gating_indices = []
+        self.train_gating_indices = []
+
+        self.training_rewards = []
+        self.training_avg = []
 
     def update_xo(self, x_outcome, o_outcome):
         self.xo_outcomes[0].append(x_outcome)
@@ -27,6 +32,12 @@ class Diagnostics:
         self.model_outcomes[1].append(hof_outcome)
         self.model_outcomes[2].append(1 - train_outcome - hof_outcome)
 
+    def update_training(self, reward):
+        n = min(self.training_run_length, len(self.training_rewards))
+
+        self.training_rewards.append(reward)
+        self.training_avg.append(np.mean(self.training_rewards[-n:]) if n > 0 else 0)
+
     def update_reward(self, reward):
         n = min(self.run_length, len(self.rewards))
 
@@ -36,6 +47,8 @@ class Diagnostics:
 
     def add_gate_ind(self):
         self.gating_indices.append(len(self.rewards) - 1)
+        self.train_gating_indices.append(len(self.training_rewards) - 1)
+
 
     def get_recent_performance(self):
         if len(self.rewards) == 0:
@@ -166,6 +179,14 @@ def save_plots(mnk, hof, model_name, diagnostics):
     plt.ylabel("Proportion of wins averaged over previous {} games".format(diagnostics.run_length))
     add_gating_markers(diagnostics.gating_indices)
     plt.savefig("{}/HOF.png".format(plots_dir))
+    plt.clf()
+
+    plt.plot(range(len(diagnostics.training_rewards)), np.array(diagnostics.training_avg))
+    add_gating_markers(diagnostics.train_gating_indices)
+    plt.title("{}: Reward for {} training games".format(model_name, len(diagnostics.training_rewards)+1))
+    plt.xlabel("Game #")
+    plt.ylabel("Cumulative reward over previous {} games".format(diagnostics.training_run_length))
+    plt.savefig("{}/TrainingReward.png".format(plots_dir))
     plt.clf()
 
     step = max(1, hof.pop_size // 40)

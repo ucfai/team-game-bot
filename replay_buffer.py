@@ -51,7 +51,7 @@ class PrioritySumTree():
             if record_ancestors is not None:
                 record_ancestors[index] = current
 
-            if val > self.priorities[2 * current + 1]:
+            if val > self.priorities[2 * current + 1] and self.priorities[2 * current + 2] != 0:
                 val -= self.priorities[2 * current + 1]
                 current = 2 * current + 2
             else:
@@ -78,7 +78,7 @@ class ReplayBuffer:
     def clear(self):
         self.buffer.clear()
 
-    def store(self, experience, priority=1e6):
+    def store(self, experience, priority=2.0):
         self.buffer.add(experience, priority)
 
     def sample_batch(self):

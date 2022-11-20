@@ -35,11 +35,14 @@ class Agent:
 
         return list(legal_action_values.keys())[sampled_ind]
 
-    def action(self, board, epsilon=0, beta=1):
+    def action(self, board, epsilon=0, beta=None):
         legal_moves = board.legal_moves()
         assert len(legal_moves) > 0, "No legal moves can be played."
 
-        best_move = self.softmax_action(board, beta)
+        if beta is None:
+            best_move = self.greedy_action(board)
+        else:
+            best_move = self.softmax_action(board, beta)
 
         # Exploration
         if random.random() < epsilon:
