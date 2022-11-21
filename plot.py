@@ -8,7 +8,7 @@ import os
 
 
 class Diagnostics:
-    def __init__(self, run_length=50, training_run_length=500):
+    def __init__(self, run_length=50, training_run_length=200):
         self.run_length = run_length
         self.training_run_length = training_run_length
         self.xo_outcomes = [[], [], []]
@@ -128,10 +128,9 @@ def get_moving_avg(data, run_length=50):
     return arr
 
 
-def save_plots(mnk, hof, model_name, diagnostics):
+def save_plots(mnk, hof, plots_dir, model_name, diagnostics):
 
     # Create model's plots folder
-    plots_dir = "plots/{}".format(model_name)
     if not os.path.isdir(plots_dir):
         os.makedirs(plots_dir)
 

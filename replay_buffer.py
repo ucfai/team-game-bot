@@ -4,44 +4,64 @@ import math
 
 class PrioritySumTree():
     def __init__(self, capacity):
+        self.capacity = capacity
+        self.size = 0
+
         self.depth = math.ceil(math.log2(capacity))
-        self.size = 2**(self.depth + 1) - 1
+        self.array_len = 2**(self.depth + 1) - 1
         self.leaf_start = 2**self.depth - 1
 
-        self.priorities = np.zeros(self.size, dtype="float32")
-        self.datatable = [None for _ in range(self.size)]
-        self.capacity = capacity
+        self.priorities = np.zeros(self.array_len, dtype="float32")
+        self.priorities_min = np.full(shape=self.array_len, fill_value=np.Inf, dtype="float32")
+
+        self.datatable = [None for _ in range(self.array_len)]
         self.ind = 0
+        self.min = None
 
     def clear(self):
-        self.priorities = np.zeros(self.size, dtype="float32")
-        self.datatable = [None for _ in range(self.size)]
+        self.priorities = np.zeros(self.array_len, dtype="float32")
+        self.priorities_min = np.full(shape=self.array_len, fill_value=np.Inf, dtype="float32")
+        self.datatable = [None for _ in range(self.array_len)]
+
+        self.size = 0
         self.ind = 0
 
     def add(self, data, priority):
+        self.size = min(self.size + 1, self.capacity)
+
         index = self.ind + self.leaf_start
         change = priority - self.priorities[index]
 
-        self.priorities[index] += change
+        self.priorities[index] = priority
+        self.priorities_min[index] = priority
         self.datatable[index] = data
 
         current = (index - 1) // 2
         while (current >= 0):
-            self.priorities[current] += change
+            self.priorities[current] = self.priorities[current * 2 + 1] + self.priorities[current * 2 + 2]
+            self.priorities_min[current] = min(self.priorities_min[current * 2 + 1], self.priorities_min[current * 2 + 2])
             current = (current - 1) // 2
 
         self.ind = (self.ind + 1) % self.capacity
 
     def update_vectorized(self, batch_ancestors, old_priorities, new_priorities):
-        change = new_priorities - old_priorities
-        if change.shape == ():
-            change = np.expand_dims(change, axis=0)
+        self.priorities[batch_ancestors[:, -1]] = self.priorities_min[batch_ancestors[:, -1]] = new_priorities
+
+        # change = new_priorities - old_priorities
+        # if change.shape == ():
+            # change = np.expand_dims(change, axis=0)
 
         for i in range(batch_ancestors.shape[0]):
-            self.priorities[batch_ancestors[i]] += change[i]
+            for index in batch_ancestors[i][:-1:-1]:
+                # self.priorities[batch_ancestors[i]] += change[i]
+                self.priorities[index] = self.priorities[index * 2 + 1] + self.priorities[index * 2 + 2]
+                self.priorities_min[index] = min(self.priorities_min[index * 2 + 1], self.priorities_min[index * 2 + 2])
 
     def get_total(self):
         return self.priorities[0]
+
+    def get_min(self):
+        return self.priorities_min[0]
 
     def sample_priority(self, val, record_ancestors=None):
         current = 0
@@ -55,6 +75,9 @@ class PrioritySumTree():
                 val -= self.priorities[2 * current + 1]
                 current = 2 * current + 2
             else:
+                if val > self.priorities[2 * current + 1]:
+                    print("Avoided 0 priority node.")
+
                 current = 2 * current + 1
 
             index += 1
@@ -62,11 +85,11 @@ class PrioritySumTree():
         if record_ancestors is not None:
             record_ancestors[index] = current
 
-        return self.datatable[current], self.priorities[current] 
+        return self.datatable[current], self.priorities[current], self.get_min(), self.size
 
 
 class ReplayBuffer:
-    def __init__(self, capacity, batch_size):
+    def __init__(self, capacity, batch_size, alpha):
         self.capacity = capacity
         self.batch_size = batch_size
         self.buffer = PrioritySumTree(capacity)
@@ -74,11 +97,14 @@ class ReplayBuffer:
 
         self.last_batch = None
         self.last_batch_priorities = None
+        self.max_priority = 2.0**alpha
 
     def clear(self):
         self.buffer.clear()
 
-    def store(self, experience, priority=2.0):
+    def store(self, experience, priority=None):
+        if priority is None:
+            priority = self.max_priority
         self.buffer.add(experience, priority)
 
     def sample_batch(self):
@@ -93,10 +119,11 @@ class ReplayBuffer:
 
         for i in range(self.batch_size):
             priority = random.uniform(segment * i, segment * (i+1)) 
-            experience, real_priority = self.buffer.sample_priority(priority, self.last_batch[i])
+            experience, real_priority, min_priority, size = self.buffer.sample_priority(priority, self.last_batch[i])
             self.last_batch_priorities[i] = real_priority
 
-            imp_sampling[i] = (1 / self.capacity) * (real_priority / p_total)
+            imp_sampling[i] = (1 / size) / (real_priority / p_total)
+            imp_sampling[i] /= (1 / size) / (min_priority / p_total)
             experiences.append(experience)
             
         return experiences, imp_sampling

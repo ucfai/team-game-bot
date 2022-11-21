@@ -17,14 +17,51 @@ import sys
 import os
 import shutil
 import warnings
+from enum import Enum
 
 # Set cmd-line training arguments
 verbose, mcts, model_name = arg_parser(sys.argv)
-verbose, model_name = False, "new_model"
 mnk = (3, 3, 3)
+plot_folder = "plots/{}".format(model_name)
 
+class ResetType(Enum):
+    NONE = 0  # Reset nothing
+    OPT = 1  # Reset only optimizer
+    FULL = 2  # Reset model and optimizer
 
-def get_corrected_action_values(model, lagging_model, states, actions, td_errors, weights):
+class HyperParameters():
+    def __init__(self, diagnostic_rate, training_sample_rate, diagnostic_run_length, hof_resample_rate, hof_gate_rate, hof_wait_time, total_games, batch_size, 
+        lr, buffer_size, alpha, buffer_beta, min_priority, update_rate, n_steps, lagging_period, training_wait_time, epsilon, policy_beta, reset_type, plotting_rate):
+
+        # Diagnostic params
+        self.diagnostic_rate = diagnostic_rate  # How often diagnostic games are run (in # of games)
+        self.diagnostic_run_length = diagnostic_run_length  # Run length over which diagnostic returns are averaged
+        self.training_sample_rate = training_sample_rate  # How often to sample a training reward for diagnostics
+        self.plotting_rate = plotting_rate
+
+        self.hof_resample_rate = hof_resample_rate  # How often to sample a new HOF opponent (in # of games)
+        self.hof_gate_rate = hof_gate_rate  # How often to check if new model can be added to HOF (in # of games)
+        self.hof_wait_time = hof_wait_time  # Minimum time between HOF additions (in # of games)
+        
+        self.total_games = total_games  # Total number of training games
+        self.batch_size = batch_size  # Batch size (taken from replay buffer)
+        self.lr = lr  # Learning rate for optimizer
+
+        self.buffer_size = buffer_size  # Max number of transitions to store in replay buffer
+        self.alpha = alpha  # Weight that high priority transitions are given when sampling from buffer (alpha > 0)
+        self.buffer_beta = buffer_beta  # Degree of importance sampling used to counteract off-policy sampling (0 <= beta <= 1
+        self.min_priority = min_priority  # Minimum priority given to a transition
+
+        self.update_rate = update_rate  # How often to perform a training update on the model (in # of moves)
+        self.n_steps = n_steps  # Num of steps used in temporal difference bootstrapping
+        self.lagging_period = lagging_period  # How often to update the lagging model (in # of moves)
+        self.training_wait_time = training_wait_time  # How many moves to wait before continuing training after HOF additions
+        self.reset_type = reset_type  # What kind of reset to perform on model after HOF addition
+
+        self.epsilon = epsilon  # Chance of picking a random move during training
+        self.policy_beta = policy_beta  # The lower this is, the closer the policy is to random. The higher, the closer it is to greedy (policy_beta > 0)
+
+def get_corrected_action_values(model, states, actions, td_errors, weights):
     """Returns an action value vector with a 1 step TD update as a target for training
 
     Args:
@@ -48,7 +85,7 @@ def get_corrected_action_values(model, lagging_model, states, actions, td_errors
     return target_outputs
 
 
-def train_on_replays(model, lagging_model, replay_buffer, alpha, beta, min_priority):
+def train_on_replays(model, lagging_model, replay_buffer, params):
     """Trains the model with 1 step TD updates on a batch of samples.
 
     Args:
@@ -79,19 +116,18 @@ def train_on_replays(model, lagging_model, replay_buffer, alpha, beta, min_prior
         bootstrap_vals[i] = 0 if argmax_inds[i] == -1 else next_state_action_vals[i][argmax_inds[i]]
 
     td_errors = bootstrap_vals + rewards - state_vals
-    weights = tf.math.pow(importance_sampling, beta)
-    weights /= tf.math.reduce_max(weights)
+    weights = tf.math.pow(importance_sampling, params.buffer_beta)
 
-    priorities = tf.math.abs(td_errors) + tf.constant(min_priority, dtype=tf.float32, shape=(batch_size))
-    priorities = tf.math.pow(priorities, alpha)
+    priorities = tf.math.abs(td_errors) + tf.constant(params.min_priority, dtype=tf.float32, shape=(batch_size))
+    priorities = tf.math.pow(priorities, params.alpha)
     replay_buffer.update_batch(priorities)
 
-    target_outputs = get_corrected_action_values(model, lagging_model, states, actions, td_errors, weights)
+    target_outputs = get_corrected_action_values(model, states, actions, td_errors, weights)
 
     lr_scheduler = tf.keras.callbacks.LearningRateScheduler(scheduler)
     model.model.fit(states, target_outputs, epochs=1, batch_size=len(states), steps_per_epoch=1, callbacks=[lr_scheduler], verbose=False)
 
-def run_training_game(diagnostics, transitions, agent_train, agent_versing, lagging_model, replay_buffer, alpha, beta, min_priority, n_steps=1, model_update_freq=4, lagging_freq=100, start_at=5000, epsilon=0, policy_beta=1, mnk=(3, 3, 3), verbose=False):
+def run_training_game(diagnostics, transitions, agent_train, agent_versing, lagging_model, replay_buffer, params, mnk=(3, 3, 3), verbose=False, plot_reward=False):
     """Runs a training game with the provided agents.
 
     Args:
@@ -115,22 +151,22 @@ def run_training_game(diagnostics, transitions, agent_train, agent_versing, lagg
             board.move(*agent_versing.greedy_action(board))
         else:
             transitions += 1
-            move = agent_train.action(board, epsilon, beta)
+            move = agent_train.action(board, params.epsilon, params.policy_beta)
 
-            if len(state_queue) >= n_steps:
+            if len(state_queue) >= params.n_steps:
                 # Adds last action to replay buffer
                 state, action = state_queue[0]
                 replay_buffer.store((get_input_rep(state)[0], action[0] * n + action[1], get_input_rep(board.get_board())[0], 0, False))
 
-            if transitions % model_update_freq == 0 and transitions > start_at:
+            if transitions % params.update_rate == 0 and transitions > params.training_wait_time:
                 # Trains on a replay batch
-                train_on_replays(agent_train.model, lagging_model, replay_buffer, alpha, beta, min_priority)
-            if transitions % lagging_freq == 0:
+                train_on_replays(agent_train.model, lagging_model, replay_buffer, params)
+            if transitions % params.lagging_period == 0:
                 # Updates the lagging model to the current model
                 lagging_model.model = tf.keras.models.clone_model(agent_train.model.model)
 
             state_queue.append((board.get_board(), move))
-            if len(state_queue) > n_steps:
+            if len(state_queue) > params.n_steps:
                 state_queue.pop(0)
 
             board.move(*move)
@@ -142,7 +178,8 @@ def run_training_game(diagnostics, transitions, agent_train, agent_versing, lagg
     winner = board.who_won()
     reward = agent_train.player * winner
 
-    diagnostics.update_training(reward)
+    if plot_reward:
+        diagnostics.update_training(reward)
 
     # Back up the terminal state value to the last actions chosen by training agent
     while len(state_queue) > 0:
@@ -152,29 +189,29 @@ def run_training_game(diagnostics, transitions, agent_train, agent_versing, lagg
     return winner, game, transitions
 
 
-def train(hof, total_games, diagnostic_freq, run_length, resample_freq, hof_gate_freq, hof_wait_period, batch_size, epsilon, policy_beta, buffer_size, alpha, beta, min_priority, n_steps, update_freq, lagging_freq, start_transition, model, lr):
-    diagnostics = Diagnostics(run_length=run_length)
-    games = ["" for _ in range(total_games // diagnostic_freq * 2)]
+def train(hof, params, model):
+    diagnostics = Diagnostics(run_length=params.diagnostic_run_length)
+    games = ["" for _ in range(params.total_games // params.diagnostic_rate * 2)]
 
     # Initialize hall of fame
     hof.store(model)
 
     # Initialize replay buffer
-    replay_buffer = ReplayBuffer(buffer_size, batch_size)
+    replay_buffer = ReplayBuffer(params.buffer_size, params.batch_size, params.alpha)
 
     # Initialize lagging model
     lagging_model = Model(mnk, model=tf.keras.models.clone_model(model.model))
 
     transitions = 0
     best_diagnostic = -1
-    games_since_hof = hof_wait_period
+    games_since_hof = params.hof_wait_time
 
     try:
-        for game in range(total_games):
+        for game in range(params.total_games):
             games_since_hof += 1
 
             # Regularly choose a new HOF opponent
-            if game % resample_freq == 0:
+            if game % params.hof_resample_rate == 0:
                 side_best = [-1, 1][random.random() > 0.5]
                 side_hof = side_best * -1
                 model_hof = hof.sample(index=game % hof.pop_size)
@@ -184,14 +221,15 @@ def train(hof, total_games, diagnostic_freq, run_length, resample_freq, hof_gate
             agent_hof = Agent(model_hof, side_hof)
 
             # Play game and train on its outcome
-            _, _, transitions = run_training_game(diagnostics, transitions, agent_best, agent_hof, lagging_model, replay_buffer, alpha, beta, min_priority, n_steps, update_freq, lagging_freq, start_transition, epsilon, policy_beta, mnk)
+            plot_reward = (game % params.training_sample_rate == 0)
+            _, _, transitions = run_training_game(diagnostics, transitions, agent_best, agent_hof, lagging_model, replay_buffer, params, mnk, plot_reward=plot_reward)
 
             # Switch sides for next game
             side_hof *= -1
             side_best = side_hof * -1
 
             # Regularly attempt to add the model into HOF ("gating")
-            if game % hof_gate_freq == 0 and games_since_hof > hof_wait_period:
+            if game % params.hof_gate_rate == 0 and games_since_hof > params.hof_wait_time:
                 reward, improvement = diagnostics.get_recent_performance()
 
                 # Only add if reward is positive and improvement has plateaued
@@ -205,11 +243,15 @@ def train(hof, total_games, diagnostic_freq, run_length, resample_freq, hof_gate
                     transitions = 0
                     games_since_hof = 0
                     best_diagnostic = -1
-                    K.set_value(model.opt.learning_rate, lr)
+
+                    if params.reset_type is ResetType.OPT:
+                        model.reset_optimizer()
+                    elif params.reset_type is ResetType.FULL:
+                        model.initialize_model()
 
                     print("Done.\n")
 
-            if game % diagnostic_freq == 0:
+            if game % params.diagnostic_rate == 0:
                 print("Game: ", game)
 
                 # Run diagnostic (non-training, no exploration) games to collect data
@@ -248,6 +290,11 @@ def train(hof, total_games, diagnostic_freq, run_length, resample_freq, hof_gate
                 best_diagnostic = max(best_diagnostic, diagnostics.rewards[-1])
                 print("Real Reward: {}, Smoothed Reward: {}, Improvement: {}".format(diagnostics.rewards[-1], *diagnostics.get_recent_performance()))
 
+            if game % params.plotting_rate == 0:
+                save_model(model, model_name)
+                save_plots(mnk, hof, plot_folder, model_name, diagnostics)
+
+
     except KeyboardInterrupt:
         print("\n=======================")
         print("Training interrupted.")
@@ -282,41 +329,57 @@ def clear_hof(folder):
             print("Error while clearing HOF folder (Specified folder not found).")
 
 
+
 def main():
     # Hyperparameter List
-    diagnostic_freq = 10  # How often to run diagnostic games (in number of games)
-    run_length = 40 # Run length for diagnostic smoothing (in diagnostic games)
+    diagnostic_rate = 10  # How often to run diagnostic games (in number of games)
+    diagnostic_run_length = 40 # Run length for diagnostic smoothing (in diagnostic games)
+    training_sample_rate = 7
+    plotting_rate = 10000
 
-    resample_freq = 100  # How often to choose a new HOF opponent (in games)
-    hof_gate_freq = 1000  # How often to gate a new model into the HOF (in games)
-    hof_wait_period = 4000 # How long to wait after adding to HOF before adding again
+    hof_resample_rate = 100  # How often to choose a new HOF opponent (in games)
+    hof_gate_rate = 1000  # How often to gate a new model into the HOF (in games)
+    hof_wait_time = 4000 # How long to wait after adding to HOF before adding again
 
     total_games = 200000  # Total num of training games
-    batch_size = 32  # Batch size for training
-    lr = 0.001  # Learning rate for SGD
+    batch_size = 32  # Batch size for training lr = 0.001  # Learning rate for SGD
+    lr = 0.001
 
-    update_freq = 4  # How often to train the model on a replay batch (in moves)
     buffer_size = 50000  # Num of moves to store in replay buffer
     alpha = 0.7
-    beta = 0.5
+    buffer_beta = 0.8
     min_priority = 0.01
 
+    update_rate = 4  # How often to train the model on a replay batch (in moves)
     n_steps = 1  # Num of steps used for temporal difference training targets
-    lagging_freq = 500  # How often to update the lagging model (in moves)
-    start_transition = 5000
+    lagging_period = 500  # How often to update the lagging model (in moves)
+    training_wait_time = 5000
+    reset_type = ResetType.OPT
 
-    epsilon = 0  # Chance of picking a random move
+    epsilon = 0.0  # Chance of picking a random move
     policy_beta = 1.0  # The lower this is, the more likely a "worse" move is chosen (don't set < 0)
 
-    hof_folder = "menagerie"    # Folder to store the hall-of-fame models
+    params = HyperParameters(diagnostic_rate=diagnostic_rate, training_sample_rate=training_sample_rate, diagnostic_run_length=diagnostic_run_length, hof_resample_rate=hof_resample_rate,
+            hof_gate_rate=hof_gate_rate, hof_wait_time=hof_wait_time, total_games=total_games, batch_size=batch_size, lr=lr, buffer_size=buffer_size, alpha=alpha, buffer_beta=buffer_beta, 
+            min_priority=min_priority, update_rate=update_rate, n_steps=n_steps, lagging_period=lagging_period, training_wait_time=training_wait_time, epsilon=epsilon, policy_beta=policy_beta,
+            reset_type=reset_type, plotting_rate=plotting_rate)
+
+    hof_folder = "menagerie/{}".format(model_name)    # Folder to store the hall-of-fame models
+    plot_folder = "plots/{}".format(model_name)
+
+    if not os.path.isdir(plot_folder):
+        os.makedirs(plot_folder)
+    with open("{}/hyperparams.txt".format(plot_folder), "w") as text_file:
+            print(f"{params.__dict__}", file=text_file)
+
+    clear_hof(hof_folder)
     hof = HOF(mnk, folder=hof_folder)
 
     print("\nTraining model: {}\n".format(model_name))
-    model, diagnostics, games = train(hof, total_games, diagnostic_freq, run_length, resample_freq, hof_gate_freq, hof_wait_period, batch_size, epsilon, policy_beta, buffer_size, alpha, beta, min_priority, n_steps, update_freq, lagging_freq, start_transition, Model(mnk, lr=lr), lr=lr)
+    model, diagnostics, games = train(hof, params, Model(mnk, lr=params.lr))
 
     save_model(model, model_name)
-    save_plots(mnk, hof, model_name, diagnostics)
-    clear_hof(hof_folder)
+    save_plots(mnk, hof, plot_folder, model_name, diagnostics)
 
     # Can be used after looking at plot to analyze important milestones
     # TODO: Put into a function

@@ -23,26 +23,38 @@ class Model:
                 is provided a new model is initialized. Defaults to None.
         """
         self.mnk = mnk
-        m, n, k = mnk
+        self.lr = lr
 
         # If a location is provided, retrieve the model stored at that location
         if location is not None:
             self.model = self.retrieve(location)
             return
-
-        if model is not None:
+        elif model is not None:
             self.model = model
             return
+        else:
+            self.initialize_model()
 
-        self.opt = Adam(learning_rate=lr)
-        regularization = 0.0001
+    def reset_optimizer(self):
+        self.opt = Adam(learning_rate=self.lr)
+        self.model.compile(loss='mean_squared_error', optimizer=self.opt)
+
+    def initialize_model(self, regularization=0.0001):
+        m, n, k = self.mnk
 
         self.model = Sequential()
-        self.model.add(Conv2D(filters=32, kernel_size=3, input_shape=(m, n, 2), kernel_regularizer=l2(regularization)))
+        self.model.add(Conv2D(filters=16, kernel_size=3, padding="same", input_shape=(m, n, 2), kernel_regularizer=l2(regularization)))
+        self.model.add(Conv2D(filters=32, kernel_size=3, padding="same", kernel_regularizer=l2(regularization)))
+        self.model.add(Conv2D(filters=16, kernel_size=3, padding="same", input_shape=(m, n, 2), kernel_regularizer=l2(regularization)))
+        self.model.add(Conv2D(filters=1, kernel_size=3, padding="same", kernel_regularizer=l2(regularization)))
         self.model.add(Flatten())
-        self.model.add(Dense(128, kernel_initializer='normal', activation='relu', kernel_regularizer=l2(regularization)))
-        self.model.add(Dense(mnk[0] * mnk[1], kernel_initializer='normal', kernel_regularizer=l2(regularization)))
 
+        #model.add(Flatten())
+        #model.add(Conv2D(filters=32, kernel_size=3, padding="same", input_shape=(m, n, 2), kernel_regularizer=l2(regularization)))
+        #model.add(Dense(128, kernel_initializer='normal', activation='relu', kernel_regularizer=l2(regularization)))
+        #model.add(Dense(mnk[0] * mnk[1], kernel_initializer='normal', kernel_regularizer=l2(regularization)))
+
+        self.opt = Adam(learning_rate=self.lr)
         self.model.compile(loss='mean_squared_error', optimizer=self.opt)
 
     @staticmethod

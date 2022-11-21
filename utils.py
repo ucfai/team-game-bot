@@ -29,7 +29,7 @@ def arg_parser(argv):
     possible_arguments = ["-v", "-mcts"]
     
     # List of booleans representing if each argument is present (in order above)
-    present = [1 if arg in argv else 0 for arg in possible_arguments]
+    present = [True if arg in argv else False for arg in possible_arguments]
 
     # Last value will be model name
     if len(argv) > 1 and not argv[1].startswith("-"):
