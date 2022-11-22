@@ -98,8 +98,11 @@ class Model:
         action_vals = np.where(illegal_actions, np.full(shape=(k, m * n), fill_value=np.NINF, dtype="float32"), action_vals)
         max_vals = tf.math.reduce_max(action_vals, axis=1)
 
-        # If state is terminal, return an index of -1 for that state
-        max_inds = np.where(terminal, np.full(shape=k, fill_value=-1, dtype="int32"), np.argmax(action_vals, axis=1))
+        if terminal is not None:
+            # If state is terminal, return an index of -1 for that state
+            max_inds = np.where(terminal, np.full(shape=k, fill_value=-1, dtype="int32"), np.argmax(action_vals, axis=1))
+        else:
+            max_inds = np.argmax(action_vals, axis=1)
 
         return max_vals, max_inds
 

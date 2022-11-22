@@ -23,6 +23,7 @@ from enum import Enum
 verbose, mcts, model_name = arg_parser(sys.argv)
 mnk = (3, 3, 3)
 plot_folder = "plots/{}".format(model_name)
+hof_folder = "menagerie/{}".format(model_name)    # Folder to store the hall-of-fame models
 
 class ResetType(Enum):
     NONE = 0  # Reset nothing
@@ -108,14 +109,15 @@ def train_on_replays(model, lagging_model, replay_buffer, params):
         states[i], actions[i], next_states[i], rewards[i], terminal[i] = experience
 
     bootstrap_vals = np.zeros(batch_size, dtype="float32")
-    state_vals, _ = model.state_value(states)
+
+    state_action_vals = np.array(model.action_values(states))[np.arange(batch_size), actions]
     next_state_action_vals = lagging_model.action_values(next_states)
     _, argmax_inds = model.state_value(next_states, terminal)
 
     for i in range(batch_size):
         bootstrap_vals[i] = 0 if argmax_inds[i] == -1 else next_state_action_vals[i][argmax_inds[i]]
 
-    td_errors = bootstrap_vals + rewards - state_vals
+    td_errors = bootstrap_vals + rewards - state_action_vals
     weights = tf.math.pow(importance_sampling, params.buffer_beta)
 
     priorities = tf.math.abs(td_errors) + tf.constant(params.min_priority, dtype=tf.float32, shape=(batch_size))
@@ -294,7 +296,7 @@ def train(hof, params, model):
 
             if game % params.plotting_rate == 0:
                 save_model(model, model_name)
-                save_plots(mnk, hof, plot_folder, model_name, diagnostics)
+                save_plots(mnk, hof, plot_folder, hof_folder, model_name, diagnostics)
 
 
     except KeyboardInterrupt:
@@ -381,7 +383,7 @@ def main():
     model, diagnostics, games = train(hof, params, Model(mnk, lr=params.lr))
 
     save_model(model, model_name)
-    save_plots(mnk, hof, plot_folder, model_name, diagnostics)
+    save_plots(mnk, hof, plot_folder, hof_folder, model_name, diagnostics)
 
     # Can be used after looking at plot to analyze important milestones
     # TODO: Put into a function

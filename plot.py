@@ -102,13 +102,13 @@ def sample_histogram(sample_history, bins=100):
 
 
 # 1v1 matrix for historical models: ideally, newer versions beating earlier ones
-def winrate_matrix(mnk, num_games, step):
+def winrate_matrix(mnk, hof_dir, num_games, step):
     print("Calculating winrate matrix... (may take a while)")
     matrix = np.zeros((num_games // step, num_games // step))
     for i in range(0, num_games, step):
         for j in range(0, num_games, step):
-            model_i = Model(mnk, "menagerie/{}".format(i))
-            model_j = Model(mnk, "menagerie/{}".format(j))
+            model_i = Model(mnk, location="{}/{}".format(hof_dir, i))
+            model_j = Model(mnk, location="{}/{}".format(hof_dir, j))
 
             side_i = 1
             side_j = side_i * -1
@@ -128,7 +128,7 @@ def get_moving_avg(data, run_length=50):
     return arr
 
 
-def save_plots(mnk, hof, plots_dir, model_name, diagnostics):
+def save_plots(mnk, hof, plots_dir, hof_dir, model_name, diagnostics):
 
     # Create model's plots folder
     if not os.path.isdir(plots_dir):
@@ -189,7 +189,7 @@ def save_plots(mnk, hof, plots_dir, model_name, diagnostics):
     plt.clf()
 
     step = max(1, hof.pop_size // 40)
-    matrix = winrate_matrix(mnk, hof.pop_size, step)
+    matrix = winrate_matrix(mnk, hof_dir, hof.pop_size, step)
     plt.imshow(matrix, cmap="bwr")
     plt.imsave("plots/{}/Matrix.png".format(model_name), matrix, cmap="bwr")
     plt.clf()
