@@ -228,6 +228,8 @@ def train(hof, params, model):
             side_hof *= -1
             side_best = side_hof * -1
 
+            assert side_hof != side_best, "Opponents can't be on the same side"
+
             # Regularly attempt to add the model into HOF ("gating")
             if game % params.hof_gate_rate == 0 and games_since_hof > params.hof_wait_time:
                 reward, improvement = diagnostics.get_recent_performance()
@@ -345,9 +347,9 @@ def main():
     batch_size = 32  # Batch size for training lr = 0.001  # Learning rate for SGD
     lr = 0.001
 
-    buffer_size = 50000  # Num of moves to store in replay buffer
+    buffer_size = 20000  # Num of moves to store in replay buffer
     alpha = 0.7
-    buffer_beta = 0.8
+    buffer_beta = 0.5
     min_priority = 0.01
 
     update_rate = 4  # How often to train the model on a replay batch (in moves)

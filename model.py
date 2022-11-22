@@ -43,16 +43,16 @@ class Model:
         m, n, k = self.mnk
 
         self.model = Sequential()
-        self.model.add(Conv2D(filters=16, kernel_size=3, padding="same", input_shape=(m, n, 2), kernel_regularizer=l2(regularization)))
-        self.model.add(Conv2D(filters=32, kernel_size=3, padding="same", kernel_regularizer=l2(regularization)))
-        self.model.add(Conv2D(filters=16, kernel_size=3, padding="same", input_shape=(m, n, 2), kernel_regularizer=l2(regularization)))
-        self.model.add(Conv2D(filters=1, kernel_size=3, padding="same", kernel_regularizer=l2(regularization)))
-        self.model.add(Flatten())
+        #self.model.add(Conv2D(filters=16, kernel_size=3, padding="same", input_shape=(m, n, 2), kernel_regularizer=l2(regularization)))
+        #self.model.add(Conv2D(filters=32, kernel_size=3, padding="same", kernel_regularizer=l2(regularization)))
+        #self.model.add(Conv2D(filters=16, kernel_size=3, padding="same", input_shape=(m, n, 2), kernel_regularizer=l2(regularization)))
+        #self.model.add(Conv2D(filters=1, kernel_size=3, padding="same", kernel_regularizer=l2(regularization)))
+        #self.model.add(Flatten())
 
-        #model.add(Flatten())
-        #model.add(Conv2D(filters=32, kernel_size=3, padding="same", input_shape=(m, n, 2), kernel_regularizer=l2(regularization)))
-        #model.add(Dense(128, kernel_initializer='normal', activation='relu', kernel_regularizer=l2(regularization)))
-        #model.add(Dense(mnk[0] * mnk[1], kernel_initializer='normal', kernel_regularizer=l2(regularization)))
+        self.model.add(Conv2D(filters=32, kernel_size=3, input_shape=(m, n, 2), kernel_regularizer=l2(regularization)))
+        self.model.add(Flatten())
+        self.model.add(Dense(128, kernel_initializer='normal', activation='relu', kernel_regularizer=l2(regularization)))
+        self.model.add(Dense(m * n, kernel_initializer='normal', kernel_regularizer=l2(regularization)))
 
         self.opt = Adam(learning_rate=self.lr)
         self.model.compile(loss='mean_squared_error', optimizer=self.opt)
@@ -93,10 +93,13 @@ class Model:
         k, m, n, _ = states.shape
 
         illegal_actions = (np.sum(states, axis=3) != 0).reshape(k, m * n)
-        action_vals += np.where(illegal_actions, np.full(shape=(k, m * n), fill_value=np.NINF, dtype="float32"), illegal_actions == 0)
-
+        
+        # Replace values for illegal actions with -infinity so they can't be picked as max
+        action_vals = np.where(illegal_actions, np.full(shape=(k, m * n), fill_value=np.NINF, dtype="float32"), action_vals)
         max_vals = tf.math.reduce_max(action_vals, axis=1)
-        max_inds = np.argmax(action_vals, axis=1)
+
+        # If state is terminal, return an index of -1 for that state
+        max_inds = np.where(terminal, np.full(shape=k, fill_value=-1, dtype="int32"), np.argmax(action_vals, axis=1))
 
         return max_vals, max_inds
 
