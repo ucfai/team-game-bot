@@ -1,23 +1,66 @@
 <!DOCTYPE html>
 <html>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <!-- Add Bootstrap -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+        <link rel="stylesheet" type="text/css" href="style.css" />
+        <script
+            src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"
+            integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA=="
+            crossorigin="anonymous"
+        ></script>
+        <script type="text/javascript" charset="utf-8">
+            var socket = io();
+            socket.on("connect", function () {
+                socket.emit("connection", { route: location });
+            });
+        </script>
+        <script type="text/javascript" src="display-board.js" defer></script>
+        <script type="text/javascript" src="script.js" defer></script>
+        <title>Tic-Tac-Toe</title>
+    </head>
 
-<head>
-	<meta charset='utf-8'>
-	<meta name='viewport' content='width=device-width, initial-scale=1'>
-	<link rel='stylesheet' type='text/css' href='style.css'>
-	<script type='text/javascript' src='display-board.js' defer></script>
-	<script type='text/javascript' src='script.js' defer></script>
-	<title>Tic-Tac-Toe</title>
-</head>
+    <body>
+        <!-- Add padding to new game with bootstrap -->
+        <div class="New Game" style="padding: 20px;">
+            
+            <h2><div class="Size"><img src="https://svgur.com/i/gXX.svg" class="ucfai" alt="Sgv Image">: MNK Game</h2></div>
+            <!-- User input for M x N x K Game -->
+            <div class="input-mnk">
+            <div class="Size" style="display: flex; flex-direction: row; align-items: center;">
+                <div class="input-group" style="width: 5.5em; margin-right: 1.2em;">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text font-weight-bold" id="basic-addon1">M</span>
+                        <input type="number" class="rounded-right" id="m" placeholder="m" min="1" value="7" style="width: 3em; margin-right: 0.5em;" />
+                    </div>
+                </div>
+                <div class="input-group" style="width: 5.5em; margin-right: 1.2em;">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text font-weight-bold" id="basic-addon1">N</span>
+                        <input type="number" class="rounded-right" id="n" placeholder="n" min="1" value="3" style="width: 3em; margin-right: 0.5em;" />
+                    </div>
+                </div>
+                <div class="input-group" style="width: 5.5em; margin-right: 1.2em;">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text font-weight-bold" id="basic-addon1">K</span>
+                        <input type="number" class="rounded-right" id="k" placeholder="k" min="1" value="3" style="width: 3em; margin-right: 0.5em;" />
+                    </div>
+                </div>
 
-<body>
-	TODO: Win detection
-	<div class='board X' id='board'></div>
+            </div>
+                <button id="start" class="btn btn-info mt-3">Start</button> 
+            </div>
+            </div>
+            <!-- <button class="newGameButton">New Game</button> -->
+        </div>
 
-	<div class='winningMessage'>
-		<div class='winningMessageText'></div>
-		<button class='newGameButton'>New Game</button>
-	</div>
-</body>
+        <div class="board X" id="board"></div>
 
+        <div class="winningMessage">
+            <div class="winningMessageText"></div>
+            <button class="newGameButton">New Game</button>
+        </div>
+    </body>
 </html>

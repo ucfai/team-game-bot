@@ -1,29 +1,81 @@
 :root {
-	--cell-size: 100px;                                        /* Property gets modified by display-board.js */
-	--gap-size: 4px;
-	--mark-size: calc(var(--cell-size) * .9);
+    --cell-size: 100px; /* Property gets modified by display-board.js */
+    --gap-size: 4px;
+    --mark-size: calc(var(--cell-size) * 0.9);
+}
+
+.btn:focus,
+.btn:active {
+    outline: none !important;
+    box-shadow: none;
+}
+
+.ucfai {
+    height: 80px;
+    display: inline;
+    margin-top: -0.2em;
+}
+
+.input-mnk {
+    margin-top: -2em;
+    margin-left: 7em;
+}
+
+input {
+    border: 1px solid #ccc;
+    text-align: center;
+}
+
+/* Chrome, Safari, Edge, Opera */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Firefox */
+input[type="number"] {
+    -moz-appearance: textfield;
+}
+
+#start {
+    width: 5.5em;
+}
+
+body {
+    /* Black but not too dark */
+    background-color: #111;
+}
+
+h2 {
+    /* White but not too white */
+    color: #eee;
 }
 
 .board {
-	position: absolute;
-	top: 50%;
-	left: 50%;
-	transform: translate(-50%, -50%);
-	display: grid;
-	grid-gap: var(--gap-size);
-	width: calc(3 * var(--cell-size) + 2 * var(--gap-size));   /* Property gets modified by display-board.js */
-	height: calc(3 * var(--cell-size) + 2 * var(--gap-size));  /* Property gets modified by display-board.js */
-	background-color: black;
-	grid-template-columns: repeat(3, 1fr);                     /* Property gets modified by display-board.js */
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: grid;
+    grid-gap: var(--gap-size);
+    width: calc(
+        3 * var(--cell-size) + 2 * var(--gap-size)
+    ); /* Property gets modified by display-board.js */
+    height: calc(
+        3 * var(--cell-size) + 2 * var(--gap-size)
+    ); /* Property gets modified by display-board.js */
+    background-color: #eee;
+    grid-template-columns: repeat(3, 1fr); /* Property gets modified by display-board.js */
 }
 
 .cell {
-	width: var(--cell-size);
-	height: var(--cell-size);
-	background-color: white;
-	display: flex;
-	justify-content: center;
-	align-items: center;
+    width: var(--cell-size);
+    height: var(--cell-size);
+    background-color: #111;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 /* BEGIN MARK STYLING */
@@ -32,85 +84,87 @@
 .cell.X::after,
 .board.X .cell:not(.X):not(.O):hover::before,
 .board.X .cell:not(.X):not(.O):hover::after {
-	content: '';
-	position: absolute;
-	width: calc(var(--mark-size) * .15);
-	height: var(--mark-size);
-	background-color: black;
+    content: "";
+    position: absolute;
+    width: calc(var(--mark-size) * 0.15);
+    height: var(--mark-size);
+    /* background-color: black; */
+    background-color: #ffc904;
 }
 
 .board.X .cell:not(.X):not(.O):hover::before,
 .board.X .cell:not(.X):not(.O):hover::after {
-	background-color: lightgray;
+    /* Darker than #ffc904; */
+    background-color: #5b4807;
 }
 
 .cell.X::before,
 .board.X .cell:not(.X):not(.O):hover::before {
-	transform: rotate(45deg);
+    transform: rotate(45deg);
 }
 
 .cell.X::after,
 .board.X .cell:not(.X):not(.O):hover::after {
-	transform: rotate(-45deg);
+    transform: rotate(-45deg);
 }
 
 .cell.O::before,
 .cell.O::after,
 .board.O .cell:not(.X):not(.O):hover::before,
 .board.O .cell:not(.X):not(.O):hover::after {
-	content: '';
-	position: absolute;
-	border-radius: 50%;
+    content: "";
+    position: absolute;
+    border-radius: 50%;
 }
 
 .cell.O::before,
 .board.O .cell:not(.X):not(.O):hover::before {
-	width: var(--mark-size);
-	height: var(--mark-size);
-	background-color: black;
+    width: var(--mark-size);
+    height: var(--mark-size);
+    background-color: white;
 }
 
 .board.O .cell:not(.X):not(.O):hover::before {
-	background-color: lightgray;
+    background-color: lightgray;
 }
 
 .cell.O::after,
 .board.O .cell:not(.X):not(.O):hover::after {
-	width: calc(var(--mark-size) * .7);
-	height: calc(var(--mark-size) * .7);
-	background-color: white;
+    width: calc(var(--mark-size) * 0.7);
+    height: calc(var(--mark-size) * 0.7);
+    background-color: #111;
 }
 
 /* END MARK STYLING */
 
 .winningMessage {
-	display: none;
-	position: fixed;
-	top: 0;
-	left: 0;
-	right: 0;
-	bottom: 0;
-	background-color: rgba(0, 0, 0, .9);
-	justify-content: center;
-	align-items: center;
-	color: white;
-	font-size: 5rem;
-	flex-direction: column;
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.9);
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 5rem;
+    flex-direction: column;
 }
 
 .winningMessage button {
-	font-size: 3rem;
-	background-color: white;
-	border: 1px solid black;
-	padding: .25em .5em;
+    font-size: 3rem;
+    background-color: white;
+    border: 1px solid black;
+    padding: 0.25em 0.5em;
 }
 
 .winningMessage button:hover {
-	background-color: black;
-	color: white;
-	border-color: white;
+    background-color: black;
+    color: white;
+    border-color: white;
 }
 
 .winningMessage.show {
-	display: flex;
+    display: flex;
 }
